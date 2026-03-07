@@ -58,11 +58,13 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 final syncServiceProvider = Provider<SyncService>((ref) {
-  return SyncService(
+  final service = SyncService(
     database: ref.watch(appDatabaseProvider),
     remoteDataSource: ref.watch(remoteDataSourceProvider),
     connectivityService: ref.watch(connectivityProvider),
   );
+  ref.onDispose(service.dispose);
+  return service;
 });
 
 final studyRepositoryProvider = Provider<StudyRepository>((ref) {

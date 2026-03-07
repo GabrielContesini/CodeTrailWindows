@@ -86,13 +86,47 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> sync(String userId) async {
+    await _runSync(userId);
+  }
+
+  @override
+  Future<void> forceSync(String userId) async {
+    await _runSync(userId, force: true);
+  }
+
+  Future<void> _runSync(String userId, {bool force = false}) async {
+    _syncService.markSyncStarted();
     try {
-      final flushed = await _syncService.flushPendingQueue();
-      if (!flushed) return;
+      final flushed = await _syncService.flushPendingQueue(
+        ignoreBackoff: force,
+      );
+      if (flushed.isOffline) {
+        _syncService.markOffline();
+        return;
+      }
+      if (flushed.isCooldownOnly) {
+        _syncService.markSyncCooldown(
+          '${flushed.deferredItems} alteracao(oes) aguardando a proxima janela de retry.',
+        );
+        return;
+      }
+      if (!flushed.isSuccessful) {
+        _syncService.markSyncFailure(
+          flushed.lastError ?? 'Falha ao processar a fila pendente.',
+        );
+        return;
+      }
 
       final bundle = await _remoteDataSource.fetchAll(userId);
       await _database.replaceRemoteSnapshot(userId, bundle);
-    } catch (_) {
+      final message = flushed.processedItems > 0
+          ? '${flushed.processedItems} alteracao(oes) sincronizadas com a nuvem.'
+          : flushed.deferredItems > 0
+              ? '${flushed.deferredItems} alteracao(oes) ainda aguardam retry.'
+              : 'Local e nuvem ja estavam em dia.';
+      _syncService.markSyncSuccess(message);
+    } catch (error) {
+      _syncService.markSyncFailure(error.toString());
       // Offline-first: mantém operação local enquanto sync remoto falha.
     }
   }

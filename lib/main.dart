@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/application/auth_controller.dart';
 import 'features/settings/application/settings_controller.dart';
 import 'shared/models/app_enums.dart';
+import 'shared/models/app_view_models.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,8 @@ class CodeTrailApp extends ConsumerStatefulWidget {
 
 class _CodeTrailAppState extends ConsumerState<CodeTrailApp> {
   StreamSubscription<bool>? _connectivitySubscription;
+  StreamSubscription<SyncQueueDiagnostics>? _syncDiagnosticsSubscription;
+  Timer? _retryTimer;
 
   @override
   void initState() {
@@ -48,16 +51,43 @@ class _CodeTrailAppState extends ConsumerState<CodeTrailApp> {
         .connectivityChanges()
         .listen((connected) {
           if (!connected) return;
-          final userId = ref.read(currentUserIdProvider);
-          if (userId == null || userId.isEmpty) return;
-          unawaited(ref.read(studyRepositoryProvider).sync(userId));
+          unawaited(_triggerSync());
         });
+    _syncDiagnosticsSubscription = ref
+        .read(appDatabaseProvider)
+        .watchSyncQueueDiagnostics()
+        .listen(_handleSyncDiagnostics);
   }
 
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _syncDiagnosticsSubscription?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
+  }
+
+  void _handleSyncDiagnostics(SyncQueueDiagnostics diagnostics) {
+    _retryTimer?.cancel();
+
+    final nextRetryAt = diagnostics.nextRetryAt;
+    if (diagnostics.blockedItems == 0 || nextRetryAt == null) {
+      return;
+    }
+
+    final delay = nextRetryAt.difference(DateTime.now().toUtc());
+    if (delay <= Duration.zero) {
+      unawaited(_triggerSync());
+      return;
+    }
+
+    _retryTimer = Timer(delay, () => unawaited(_triggerSync()));
+  }
+
+  Future<void> _triggerSync() async {
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null || userId.isEmpty) return;
+    await ref.read(studyRepositoryProvider).sync(userId);
   }
 
   @override

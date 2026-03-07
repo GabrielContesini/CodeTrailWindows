@@ -7,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/sync_retry_policy.dart';
+import '../../shared/models/app_view_models.dart';
 import '../remote/app_models.dart';
 
 part 'app_database.g.dart';
@@ -261,6 +263,10 @@ class PendingSyncQueueRecord {
     required this.recordId,
     required this.action,
     required this.payload,
+    required this.attempts,
+    required this.createdAt,
+    required this.updatedAt,
+    this.lastError,
   });
 
   final String id;
@@ -268,6 +274,10 @@ class PendingSyncQueueRecord {
   final String recordId;
   final String action;
   final Map<String, dynamic> payload;
+  final int attempts;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? lastError;
 }
 
 @DriftDatabase(
@@ -290,6 +300,7 @@ class PendingSyncQueueRecord {
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+  AppDatabase.forTesting(super.executor);
 
   @override
   int get schemaVersion => 2;
@@ -396,6 +407,90 @@ class AppDatabase extends _$AppDatabase {
           ..where((tbl) => tbl.projectId.equals(projectId))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
         .watch();
+  }
+
+  Stream<SyncQueueDiagnostics> watchSyncQueueDiagnostics() {
+    return (select(syncQueueTable)
+          ..orderBy([(tbl) => OrderingTerm.desc(tbl.updatedAt)]))
+        .watch()
+        .map((rows) {
+          if (rows.isEmpty) {
+            return const SyncQueueDiagnostics.empty();
+          }
+
+          final failedRows = rows
+              .where((row) => row.lastError != null && row.lastError!.isNotEmpty)
+              .toList();
+          final oldestPendingAt = rows
+              .map((row) => row.createdAt)
+              .reduce((left, right) => left.isBefore(right) ? left : right);
+          final latestAttemptAt = rows
+              .map((row) => row.updatedAt)
+              .reduce((left, right) => left.isAfter(right) ? left : right);
+
+          return SyncQueueDiagnostics(
+            pendingItems: rows.length,
+            blockedItems: rows
+                .where(
+                  (row) => !SyncRetryPolicy.isReady(
+                    attempts: row.attempts,
+                    updatedAt: row.updatedAt,
+                    lastError: row.lastError,
+                  ),
+                )
+                .length,
+            failedItems: failedRows.length,
+            lastError: failedRows.isEmpty ? null : failedRows.first.lastError,
+            oldestPendingAt: oldestPendingAt,
+            latestAttemptAt: latestAttemptAt,
+            nextRetryAt: rows
+                .map(
+                  (row) => SyncRetryPolicy.nextRetryAt(
+                    attempts: row.attempts,
+                    updatedAt: row.updatedAt,
+                    lastError: row.lastError,
+                  ),
+                )
+                .whereType<DateTime>()
+                .fold<DateTime?>(
+                  null,
+                  (current, candidate) => current == null ||
+                          candidate.isBefore(current)
+                      ? candidate
+                      : current,
+                ),
+          );
+        });
+  }
+
+  Stream<List<SyncQueueItemViewModel>> watchSyncQueueItems() {
+    return (select(syncQueueTable)
+          ..orderBy([
+            (tbl) => OrderingTerm.desc(tbl.updatedAt),
+            (tbl) => OrderingTerm.desc(tbl.createdAt),
+          ]))
+        .watch()
+        .map(
+          (rows) => rows
+              .map(
+                (row) => SyncQueueItemViewModel(
+                  id: row.id,
+                  tableName: row.tableNameValue,
+                  recordId: row.recordId,
+                  action: row.action,
+                  attempts: row.attempts,
+                  createdAt: row.createdAt,
+                  updatedAt: row.updatedAt,
+                  lastError: row.lastError,
+                  nextRetryAt: SyncRetryPolicy.nextRetryAt(
+                    attempts: row.attempts,
+                    updatedAt: row.updatedAt,
+                    lastError: row.lastError,
+                  ),
+                ),
+              )
+              .toList(),
+        );
   }
 
   Future<void> clearCatalog() => transaction(() async {
@@ -715,6 +810,10 @@ class AppDatabase extends _$AppDatabase {
             recordId: item.recordId,
             action: item.action,
             payload: jsonDecode(item.payloadJson) as Map<String, dynamic>,
+            attempts: item.attempts,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            lastError: item.lastError,
           ),
         )
         .toList();

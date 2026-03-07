@@ -72,6 +72,101 @@ class DashboardSummary {
   final int totalSessions;
 }
 
+enum SyncActivityPhase { idle, syncing, success, failed, offline, cooldown }
+
+class SyncQueueDiagnostics {
+  const SyncQueueDiagnostics({
+    required this.pendingItems,
+    required this.blockedItems,
+    required this.failedItems,
+    this.lastError,
+    this.oldestPendingAt,
+    this.latestAttemptAt,
+    this.nextRetryAt,
+  });
+
+  const SyncQueueDiagnostics.empty()
+    : pendingItems = 0,
+      blockedItems = 0,
+      failedItems = 0,
+      lastError = null,
+      oldestPendingAt = null,
+      latestAttemptAt = null,
+      nextRetryAt = null;
+
+  final int pendingItems;
+  final int blockedItems;
+  final int failedItems;
+  final String? lastError;
+  final DateTime? oldestPendingAt;
+  final DateTime? latestAttemptAt;
+  final DateTime? nextRetryAt;
+
+  bool get hasPendingItems => pendingItems > 0;
+  bool get hasFailures => failedItems > 0;
+  int get readyItems => pendingItems - blockedItems;
+}
+
+class SyncRuntimeSnapshot {
+  const SyncRuntimeSnapshot({
+    this.phase = SyncActivityPhase.idle,
+    this.message,
+    this.lastAttemptAt,
+    this.lastSuccessAt,
+    this.lastFailureAt,
+  });
+
+  final SyncActivityPhase phase;
+  final String? message;
+  final DateTime? lastAttemptAt;
+  final DateTime? lastSuccessAt;
+  final DateTime? lastFailureAt;
+}
+
+class SyncOverview {
+  const SyncOverview({
+    required this.isOnline,
+    required this.queue,
+    required this.runtime,
+  });
+
+  const SyncOverview.empty()
+    : isOnline = false,
+      queue = const SyncQueueDiagnostics.empty(),
+      runtime = const SyncRuntimeSnapshot();
+
+  final bool isOnline;
+  final SyncQueueDiagnostics queue;
+  final SyncRuntimeSnapshot runtime;
+}
+
+class SyncQueueItemViewModel {
+  const SyncQueueItemViewModel({
+    required this.id,
+    required this.tableName,
+    required this.recordId,
+    required this.action,
+    required this.attempts,
+    required this.createdAt,
+    required this.updatedAt,
+    this.lastError,
+    this.nextRetryAt,
+  });
+
+  final String id;
+  final String tableName;
+  final String recordId;
+  final String action;
+  final int attempts;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final String? lastError;
+  final DateTime? nextRetryAt;
+
+  bool get hasError => lastError != null && lastError!.isNotEmpty;
+  bool get isBlockedUntilRetry => nextRetryAt != null;
+}
+
 class AnalyticsSummary {
   const AnalyticsSummary({
     required this.hoursPerDay,

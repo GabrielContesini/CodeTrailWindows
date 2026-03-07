@@ -16,6 +16,7 @@ import '../../features/reviews/presentation/reviews_screen.dart';
 import '../../features/settings/presentation/settings_account_screen.dart';
 import '../../features/settings/presentation/settings_help_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/settings/presentation/settings_sync_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/study_plans/presentation/study_plan_screen.dart';
 import '../../features/study_sessions/presentation/new_session_screen.dart';
@@ -48,6 +49,7 @@ class AppRoutes {
   static const settings = '/settings';
   static const settingsAccount = '/settings/account';
   static const settingsHelp = '/settings/help';
+  static const settingsSync = '/settings/sync';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -152,6 +154,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.settingsHelp,
             builder: (context, state) => const SettingsHelpScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settingsSync,
+            builder: (context, state) => const SettingsSyncScreen(),
           ),
         ],
       ),

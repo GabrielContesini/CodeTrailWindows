@@ -11,6 +11,8 @@ import '../../../shared/models/app_view_models.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
+import '../../../shared/widgets/sync_status_card.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../reviews/application/reviews_controller.dart';
@@ -27,6 +29,7 @@ class DashboardScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(tasksProvider);
     final reviewsAsync = ref.watch(reviewsProvider);
     final projectsAsync = ref.watch(projectsProvider);
+    final userId = ref.watch(currentUserIdProvider);
 
     return PageFrame(
       title: 'Dashboard',
@@ -87,6 +90,13 @@ class DashboardScreen extends ConsumerWidget {
                         _FocusConsole(summary: summary),
                       ],
                     ),
+                  const SizedBox(height: 16),
+                  SyncStatusCard(
+                    userId: userId,
+                    title: 'Sincronizacao',
+                    subtitle:
+                        'Esta estacao salva primeiro no cache local e envia para o Supabase quando a rede permite.',
+                  ),
                   const SizedBox(height: 16),
                   _MetricGrid(
                     columns: metricColumns,

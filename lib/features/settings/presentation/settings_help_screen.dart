@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/router/app_router.dart';
 import '../../../core/services/service_providers.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -73,9 +74,7 @@ class SettingsHelpScreen extends ConsumerWidget {
                     title: 'Estado da sincronização',
                     subtitle:
                         'O app usa fila local e sincroniza quando houver conexão.',
-                    onTap: () => context.showAppSnackBar(
-                      'Offline-first ativo: alterações locais sincronizam quando houver internet.',
-                    ),
+                    onTap: () => context.push(AppRoutes.settingsSync),
                   ),
                 ]),
               ],

@@ -10,6 +10,7 @@ import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/page_frame.dart';
+import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/settings_controller.dart';
@@ -25,6 +26,7 @@ class SettingsScreen extends ConsumerWidget {
     final goalAsync = ref.watch(userGoalProvider);
     final tracksAsync = ref.watch(trackBlueprintsProvider);
     final session = ref.watch(authSessionProvider).asData?.value;
+    final userId = ref.watch(currentUserIdProvider);
 
     final hasError =
         settingsAsync.hasError ||
@@ -120,6 +122,13 @@ class SettingsScreen extends ConsumerWidget {
                     onEditAccount: () => context.push(AppRoutes.settingsAccount),
                   ),
                   const SizedBox(height: 14),
+                  SyncStatusCard(
+                    userId: userId,
+                    title: 'Estado da sincronizacao',
+                    subtitle:
+                        'Use este painel para verificar fila, falhas e status de rede antes de alternar entre desktop e tablet.',
+                  ),
+                  const SizedBox(height: 14),
                   SettingsOverviewCard(
                     goal: goal,
                     settings: settings,
@@ -188,6 +197,13 @@ class SettingsScreen extends ConsumerWidget {
                         subtitle:
                             'Português (Brasil) como padrão desta build.',
                         onTap: () => _showLanguageSheet(context),
+                      ),
+                      SettingsActionTile(
+                        icon: Icons.sync_rounded,
+                        title: 'Sincronização',
+                        subtitle:
+                            'Veja fila local, falhas recentes e force nova tentativa.',
+                        onTap: () => context.push(AppRoutes.settingsSync),
                       ),
                       SettingsActionTile(
                         icon: Icons.help_outline_rounded,

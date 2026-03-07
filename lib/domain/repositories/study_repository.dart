@@ -4,6 +4,7 @@ import '../../shared/models/app_view_models.dart';
 abstract class StudyRepository {
   Future<void> ensureSeededCatalog();
   Future<void> sync(String userId);
+  Future<void> forceSync(String userId);
 
   Future<ProfileEntity?> getProfile(String userId);
   Future<UserGoalEntity?> getGoal(String userId);
