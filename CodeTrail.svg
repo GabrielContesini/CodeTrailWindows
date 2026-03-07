@@ -1,0 +1,50 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="168" y1="120" x2="856" y2="904" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#16181D"/>
+      <stop offset="1" stop-color="#0B0D11"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="302" y1="250" x2="742" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="512" y1="292" x2="512" y2="732" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BFD8FF"/>
+      <stop offset="1" stop-color="#76A9FF"/>
+    </linearGradient>
+    <filter id="shadow" x="110" y="110" width="804" height="804" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="30" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="soft" x="250" y="230" width="524" height="564" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#5EA1FF" flood-opacity="0.14"/>
+    </filter>
+    <clipPath id="clip">
+      <rect x="160" y="160" width="704" height="704" rx="176"/>
+    </clipPath>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <rect x="160" y="160" width="704" height="704" rx="176" fill="url(#bg)"/>
+    <rect x="160.75" y="160.75" width="702.5" height="702.5" rx="175.25" stroke="white" stroke-opacity="0.08" stroke-width="1.5"/>
+  </g>
+
+  <g clip-path="url(#clip)">
+    <ellipse cx="340" cy="242" rx="260" ry="160" fill="white" fill-opacity="0.065"/>
+    <ellipse cx="700" cy="820" rx="280" ry="180" fill="#5EA1FF" fill-opacity="0.05"/>
+    <path d="M812 160C758 222 704 248 640 270C584 289 526 306 478 352C428 401 412 458 394 508C373 567 344 619 290 678C250 721 206 756 160 786V160H812Z" fill="url(#glass)"/>
+  </g>
+
+  <g filter="url(#soft)">
+    <rect x="312" y="292" width="400" height="440" rx="92" fill="white" fill-opacity="0.98"/>
+    <rect x="312.75" y="292.75" width="398.5" height="438.5" rx="91.25" stroke="#DCE5F6" stroke-width="1.5"/>
+    <path d="M432 292V732" stroke="#E7EDF8" stroke-width="2"/>
+    <path d="M372 404H392" stroke="#CED8EA" stroke-width="14" stroke-linecap="round"/>
+    <path d="M372 468H392" stroke="#CED8EA" stroke-width="14" stroke-linecap="round"/>
+    <path d="M372 532H392" stroke="#CED8EA" stroke-width="14" stroke-linecap="round"/>
+  </g>
+
+  <path d="M474 610L544 540L604 582L684 480" stroke="url(#accent)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M648 478H684V514" stroke="url(#accent)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <rect x="474" y="656" width="154" height="18" rx="9" fill="#D7E5FF"/>
+</svg>

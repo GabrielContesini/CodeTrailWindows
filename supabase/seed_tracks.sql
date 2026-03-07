@@ -1,0 +1,93 @@
+insert into public.study_tracks (id, name, description, icon_key, color_hex, roadmap_summary)
+values
+  ('track-data-engineer', 'Data Engineer', 'Pipelines, modelagem analítica, cloud data stack e governança.', 'database', '#5EA1FF', 'Fundamentos de SQL, orquestração, modelagem, cloud data warehouse e observabilidade.'),
+  ('track-backend-python', 'Backend Python', 'APIs robustas, arquitetura, testes, filas e observabilidade.', 'server', '#7CFFB2', 'HTTP, FastAPI/Django, bancos relacionais, filas, cache e deploy.'),
+  ('track-backend-php', 'Backend PHP', 'Laravel moderno, APIs, filas, testes e aplicações de negócio.', 'code', '#FFD166', 'PHP moderno, Laravel, arquitetura em camadas, filas e deploy.'),
+  ('track-frontend-react', 'Front-end React', 'Interfaces modernas, performance, componentização e testes.', 'monitor', '#5ED3FF', 'HTML/CSS/JS, React, estado, design system e deploy front.'),
+  ('track-full-stack', 'Full Stack', 'Fluxo ponta a ponta com front, back, banco e deploy.', 'layers', '#B59CFF', 'Base web, API, banco, autenticação, deploy e produto completo.'),
+  ('track-devops', 'DevOps', 'Automação, infraestrutura, containers, pipelines e observabilidade.', 'cloud', '#7CFFB2', 'Linux, redes, Docker, CI/CD, cloud e monitoramento.'),
+  ('track-bi-analyst', 'BI / Data Analyst', 'Análise, métricas, visualização, storytelling e produto.', 'chart', '#FFD166', 'SQL, métricas, dashboards, estatística aplicada e storytelling.')
+on conflict (id) do update set
+  name = excluded.name,
+  description = excluded.description,
+  icon_key = excluded.icon_key,
+  color_hex = excluded.color_hex,
+  roadmap_summary = excluded.roadmap_summary,
+  updated_at = timezone('utc', now());
+
+insert into public.study_skills (id, track_id, name, description, target_level, sort_order)
+values
+  ('skill-de-sql', 'track-data-engineer', 'SQL Analítico', 'Consultas, CTEs, joins, tuning e modelagem.', 'mid_level', 1),
+  ('skill-de-python', 'track-data-engineer', 'Python para Dados', 'ETL, APIs, testes e automações.', 'mid_level', 2),
+  ('skill-de-orchestration', 'track-data-engineer', 'Orquestração', 'DAGs, jobs agendados e reprocessamento.', 'junior', 3),
+  ('skill-de-cloud', 'track-data-engineer', 'Cloud Data', 'Storage, warehouse, IAM e custos.', 'junior', 4),
+  ('skill-bpy-python', 'track-backend-python', 'Python', 'Sintaxe, tipagem, testes e clean code.', 'mid_level', 1),
+  ('skill-bpy-api', 'track-backend-python', 'APIs REST', 'Versionamento, autenticação e documentação.', 'mid_level', 2),
+  ('skill-bpy-db', 'track-backend-python', 'Banco Relacional', 'SQL, ORM, migrations e performance.', 'junior', 3),
+  ('skill-bpy-ops', 'track-backend-python', 'Deploy & Observabilidade', 'Logs, métricas, Docker e CI/CD.', 'junior', 4),
+  ('skill-bphp-php', 'track-backend-php', 'PHP Moderno', 'POO, Composer, tipagem e boas práticas.', 'mid_level', 1),
+  ('skill-bphp-laravel', 'track-backend-php', 'Laravel', 'Eloquent, jobs, events e auth.', 'mid_level', 2),
+  ('skill-bphp-sql', 'track-backend-php', 'MySQL/Postgres', 'Queries, índices e tuning.', 'junior', 3),
+  ('skill-bphp-tests', 'track-backend-php', 'Testes', 'Feature tests, unit tests e contratos.', 'junior', 4),
+  ('skill-fr-react', 'track-frontend-react', 'React', 'Hooks, arquitetura e roteamento.', 'mid_level', 1),
+  ('skill-fr-typescript', 'track-frontend-react', 'TypeScript', 'Tipos, inferência e modelagem.', 'junior', 2),
+  ('skill-fr-ui', 'track-frontend-react', 'UI Engineering', 'Layout responsivo, acessibilidade e motion.', 'mid_level', 3),
+  ('skill-fr-tests', 'track-frontend-react', 'Testes Front-end', 'Unitários, integração e e2e.', 'junior', 4),
+  ('skill-fs-front', 'track-full-stack', 'Front-end', 'React, UI e consumo de APIs.', 'junior', 1),
+  ('skill-fs-back', 'track-full-stack', 'Back-end', 'APIs, auth e regras de negócio.', 'junior', 2),
+  ('skill-fs-db', 'track-full-stack', 'Banco de Dados', 'Modelagem e queries eficientes.', 'junior', 3),
+  ('skill-fs-product', 'track-full-stack', 'Entrega de Produto', 'Deploy, feedback e evolução.', 'junior', 4),
+  ('skill-do-linux', 'track-devops', 'Linux & Shell', 'Base operacional e automação.', 'junior', 1),
+  ('skill-do-docker', 'track-devops', 'Containers', 'Docker, registries e imagens.', 'mid_level', 2),
+  ('skill-do-cicd', 'track-devops', 'CI/CD', 'Pipelines, quality gates e deploy.', 'mid_level', 3),
+  ('skill-do-observability', 'track-devops', 'Observabilidade', 'Logs, métricas, tracing e alertas.', 'junior', 4),
+  ('skill-bi-sql', 'track-bi-analyst', 'SQL', 'Consultas, janelas e limpeza de dados.', 'mid_level', 1),
+  ('skill-bi-metrics', 'track-bi-analyst', 'Métricas', 'KPIs, funis e análise de negócio.', 'mid_level', 2),
+  ('skill-bi-viz', 'track-bi-analyst', 'Visualização', 'Dashboards claros e tomada de decisão.', 'junior', 3),
+  ('skill-bi-storytelling', 'track-bi-analyst', 'Storytelling', 'Comunicação executiva e insight acionável.', 'junior', 4)
+on conflict (id) do update set
+  track_id = excluded.track_id,
+  name = excluded.name,
+  description = excluded.description,
+  target_level = excluded.target_level,
+  sort_order = excluded.sort_order,
+  updated_at = timezone('utc', now());
+
+insert into public.study_modules (id, track_id, title, summary, estimated_hours, sort_order, is_core)
+values
+  ('module-de-sql', 'track-data-engineer', 'SQL Profissional', 'Domine SQL para engenharia e analytics.', 18, 1, true),
+  ('module-de-python-etl', 'track-data-engineer', 'ETL com Python', 'Extração, transformação, testes e observabilidade.', 22, 2, true),
+  ('module-de-airflow', 'track-data-engineer', 'Orquestração de Pipelines', 'Airflow, retries, SLA e deploy.', 16, 3, true),
+  ('module-de-warehouse', 'track-data-engineer', 'Data Warehouse e Modelagem', 'Star schema, particionamento e governança.', 20, 4, true),
+  ('module-bpy-foundations', 'track-backend-python', 'Fundamentos Python', 'Base sólida, typing e testes.', 14, 1, true),
+  ('module-bpy-fastapi', 'track-backend-python', 'APIs com FastAPI', 'Rotas, validação, auth e documentação.', 20, 2, true),
+  ('module-bpy-postgres', 'track-backend-python', 'Persistência com Postgres', 'Modelagem, migrations e queries.', 16, 3, true),
+  ('module-bpy-background', 'track-backend-python', 'Background Jobs e Deploy', 'Filas, Docker, logging e deploy.', 18, 4, false),
+  ('module-bphp-core', 'track-backend-php', 'Core PHP', 'Base sólida com Composer e POO.', 12, 1, true),
+  ('module-bphp-laravel-api', 'track-backend-php', 'Laravel API', 'Controllers, resources, auth e filas.', 22, 2, true),
+  ('module-bphp-data', 'track-backend-php', 'Persistência e Cache', 'Migrations, cache e performance.', 16, 3, true),
+  ('module-bphp-ops', 'track-backend-php', 'Deploy e Observabilidade', 'CI/CD, Horizon, logs e monitoramento.', 14, 4, false),
+  ('module-fr-js-ts', 'track-frontend-react', 'JavaScript e TypeScript', 'Base de linguagem para aplicações ricas.', 18, 1, true),
+  ('module-fr-react', 'track-frontend-react', 'React Profissional', 'Hooks, estado e arquitetura.', 24, 2, true),
+  ('module-fr-design-system', 'track-frontend-react', 'Design System e UX', 'Tokens, componentes e acessibilidade.', 14, 3, true),
+  ('module-fr-testing', 'track-frontend-react', 'Qualidade Front-end', 'Testes, performance e monitoramento.', 12, 4, false),
+  ('module-fs-web', 'track-full-stack', 'Fundamentos Web', 'HTTP, HTML, CSS e JavaScript.', 16, 1, true),
+  ('module-fs-app', 'track-full-stack', 'Aplicação Completa', 'Front-end, back-end e auth.', 26, 2, true),
+  ('module-fs-db', 'track-full-stack', 'Persistência e Deploy', 'Banco, Docker e publicação.', 18, 3, true),
+  ('module-fs-scale', 'track-full-stack', 'Escala e Observabilidade', 'Logs, métricas e iteração.', 12, 4, false),
+  ('module-do-linux', 'track-devops', 'Linux e Redes', 'Base operacional para ambiente real.', 14, 1, true),
+  ('module-do-docker', 'track-devops', 'Docker e Containers', 'Imagens, compose e boas práticas.', 18, 2, true),
+  ('module-do-cicd', 'track-devops', 'Pipelines CI/CD', 'Automação de build, testes e deploy.', 18, 3, true),
+  ('module-do-cloud', 'track-devops', 'Cloud e Observabilidade', 'Infra básica, monitoramento e custos.', 20, 4, true),
+  ('module-bi-sql', 'track-bi-analyst', 'SQL para Analytics', 'Transformações, KPIs e camadas semânticas.', 16, 1, true),
+  ('module-bi-metrics', 'track-bi-analyst', 'Métricas de Produto e Negócio', 'Definição, interpretação e análise.', 14, 2, true),
+  ('module-bi-dashboard', 'track-bi-analyst', 'Dashboards Executivos', 'Visualização, narrativa e decisões.', 18, 3, true),
+  ('module-bi-case', 'track-bi-analyst', 'Case Analítico', 'Projeto fim a fim orientado a negócio.', 16, 4, false)
+on conflict (id) do update set
+  track_id = excluded.track_id,
+  title = excluded.title,
+  summary = excluded.summary,
+  estimated_hours = excluded.estimated_hours,
+  sort_order = excluded.sort_order,
+  is_core = excluded.is_core,
+  updated_at = timezone('utc', now());
