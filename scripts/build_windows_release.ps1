@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$envFile = Join-Path $projectRoot "env\supabase.local.json"
 $iconGeneratorScript = Join-Path $PSScriptRoot "generate_windows_icon.ps1"
 
 function Resolve-FlutterCommand {
@@ -85,8 +84,15 @@ function Get-UniqueArtifactBasePath {
 }
 
 function Resolve-DartDefineArgument {
-  if (Test-Path $envFile) {
-    return "--dart-define-from-file=$envFile"
+  $candidateFiles = @(
+    (Join-Path $projectRoot "env\supabase.local.json"),
+    (Join-Path $projectRoot "env\supabase.github.json")
+  )
+
+  foreach ($candidateFile in $candidateFiles) {
+    if (Test-Path $candidateFile) {
+      return "--dart-define-from-file=$candidateFile"
+    }
   }
 
   if ($env:SUPABASE_URL -and $env:SUPABASE_ANON_KEY) {

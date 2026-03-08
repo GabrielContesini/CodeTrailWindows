@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$envFile = Join-Path $projectRoot "env\supabase.local.json"
 
 function Resolve-FlutterCommand {
   $localFlutter = Join-Path (Split-Path -Parent $projectRoot) "flutter\bin\flutter.bat"
@@ -48,8 +47,15 @@ try {
   $flutterSdk = Resolve-FlutterCommand
 
   $args = @("run", "-d", "windows")
-  if (Test-Path $envFile) {
-    $args += "--dart-define-from-file=$envFile"
+  $candidateFiles = @(
+    (Join-Path $projectRoot "env\supabase.local.json"),
+    (Join-Path $projectRoot "env\supabase.github.json")
+  )
+  foreach ($candidateFile in $candidateFiles) {
+    if (Test-Path $candidateFile) {
+      $args += "--dart-define-from-file=$candidateFile"
+      break
+    }
   }
   & $flutterSdk @args
 }

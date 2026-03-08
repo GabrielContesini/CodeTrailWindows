@@ -25,7 +25,7 @@ Projeto desktop separado do CodeTrail, baseado na versão estável Android e pre
 1. Visual Studio 2022 com workload `Desktop development with C++`
 2. Flutter estável
 3. Windows `Developer Mode` habilitado
-4. `env/supabase.local.json` configurado opcionalmente
+4. `env/supabase.local.json` configurado opcionalmente para sobrescrever o ambiente publico de release
 
 Para habilitar `Developer Mode`:
 
@@ -85,13 +85,11 @@ Observações:
 - o updater procura um asset `.exe` com `setup` no nome
 - a comparação usa a versão do app instalada, por exemplo `1.1.0`
 - para checar manualmente, use `Configurações > Atualizações`
+- builds de release no GitHub Actions usam `env/supabase.github.json`, então o ciclo automático não depende de secrets privados para a chave publica do cliente
 
 ## GitHub Actions para release
 
-Se o repositório tiver as variables ou secrets abaixo configuradas, o workflow de release do Windows gera e publica o instalador automaticamente:
-
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+O workflow de release do Windows já consegue gerar e publicar o instalador automaticamente sem secrets extras, porque usa o arquivo versionado `env/supabase.github.json` com as chaves publicas do cliente.
 
 Fluxo:
 
@@ -99,6 +97,12 @@ Fluxo:
 2. crie uma tag no formato `vX.Y.Z`
 3. faça push da tag
 4. o GitHub Actions compila o bundle, gera o `setup.exe` e anexa os arquivos na GitHub Release
+
+Se quiser sobrescrever o ambiente no seu PC local, mantenha `env/supabase.local.json`. Os scripts preferem:
+
+1. `env/supabase.local.json`
+2. `env/supabase.github.json`
+3. variaveis de ambiente do processo atual
 
 ## Observação
 
