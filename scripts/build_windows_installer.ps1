@@ -1,4 +1,6 @@
 $ErrorActionPreference = "Stop"
+$iconGeneratorScript = Join-Path $PSScriptRoot "generate_windows_icon.ps1"
+$releaseBuilderScript = Join-Path $PSScriptRoot "build_windows_release.ps1"
 
 function Get-AppVersionInfo {
   $versionLine = Get-Content ".\pubspec.yaml" |
@@ -56,6 +58,9 @@ function Find-LatestReleaseBundle {
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location $projectRoot
 try {
+  & $releaseBuilderScript
+  & $iconGeneratorScript
+
   $version = Get-AppVersionInfo
   $bundleDir = Find-LatestReleaseBundle -FullVersion $version.FullVersion
 
@@ -64,11 +69,8 @@ try {
   $tempIssPath = ".\installer\CodeTrailWindows.generated.iss"
 
   $template = Get-Content $templatePath -Raw
-  $template = $template.Replace("1.0.1+2", $version.FullVersion)
-  $template = $template.Replace(
-    "..\\artifacts\\release\\CodeTrailWindows-1.0.1+2-release",
-    "..\\artifacts\\release\\$($bundleDir.Name)"
-  )
+  $template = $template.Replace("__APP_VERSION__", $version.FullVersion)
+  $template = $template.Replace("__APP_SOURCE_DIR__", "..\\artifacts\\release\\$($bundleDir.Name)")
 
   Set-Content -Path $tempIssPath -Value $template -Encoding ASCII
   & $compiler $tempIssPath

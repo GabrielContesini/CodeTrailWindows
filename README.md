@@ -66,6 +66,40 @@ Saída:
 
 - `artifacts/installer/CodeTrailWindows-<versao+build>-setup.exe`
 
+## Atualizações para seus amigos
+
+O app Windows agora verifica novas versões no GitHub Releases do repositório:
+
+- `GabrielContesini/CodeTrailWindows`
+
+Fluxo esperado:
+
+1. publique uma nova release no GitHub com tag no formato `vX.Y.Z`
+2. anexe o instalador `CodeTrailWindows-<versao+build>-setup.exe`
+3. quando o usuário abrir o app, o CodeTrail consulta a release mais recente
+4. se houver versão nova, ele oferece `Ver mudanças` ou `Atualizar agora`
+5. ao escolher atualizar, o app baixa o `setup.exe` e inicia o instalador
+
+Observações:
+
+- o updater procura um asset `.exe` com `setup` no nome
+- a comparação usa a versão do app instalada, por exemplo `1.1.0`
+- para checar manualmente, use `Configurações > Atualizações`
+
+## GitHub Actions para release
+
+Se o repositório tiver as variables ou secrets abaixo configuradas, o workflow de release do Windows gera e publica o instalador automaticamente:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+Fluxo:
+
+1. atualize a versão no `pubspec.yaml`
+2. crie uma tag no formato `vX.Y.Z`
+3. faça push da tag
+4. o GitHub Actions compila o bundle, gera o `setup.exe` e anexa os arquivos na GitHub Release
+
 ## Observação
 
 Esta entrega prepara a base técnica do desktop. O próximo passo natural é refinar layout, densidade, tipografia e navegação especificamente para Windows.

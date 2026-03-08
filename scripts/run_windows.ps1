@@ -1,8 +1,21 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$flutterSdk = Join-Path (Split-Path -Parent $projectRoot) "flutter\bin\flutter.bat"
 $envFile = Join-Path $projectRoot "env\supabase.local.json"
+
+function Resolve-FlutterCommand {
+  $localFlutter = Join-Path (Split-Path -Parent $projectRoot) "flutter\bin\flutter.bat"
+  if (Test-Path $localFlutter) {
+    return $localFlutter
+  }
+
+  $flutterFromPath = Get-Command flutter -ErrorAction SilentlyContinue
+  if ($flutterFromPath) {
+    return $flutterFromPath.Source
+  }
+
+  throw "Flutter nao encontrado. Instale o Flutter ou deixe-o disponivel no PATH."
+}
 
 function Assert-WindowsDesktopToolchain {
   $vsWhere = Join-Path "${env:ProgramFiles(x86)}" "Microsoft Visual Studio\Installer\vswhere.exe"
@@ -32,6 +45,7 @@ Abra o Visual Studio Installer e adicione:
 Push-Location $projectRoot
 try {
   Assert-WindowsDesktopToolchain
+  $flutterSdk = Resolve-FlutterCommand
 
   $args = @("run", "-d", "windows")
   if (Test-Path $envFile) {

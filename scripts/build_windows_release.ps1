@@ -1,8 +1,22 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
-$flutterSdk = Join-Path (Split-Path -Parent $projectRoot) "flutter\bin\flutter.bat"
 $envFile = Join-Path $projectRoot "env\supabase.local.json"
+$iconGeneratorScript = Join-Path $PSScriptRoot "generate_windows_icon.ps1"
+
+function Resolve-FlutterCommand {
+  $localFlutter = Join-Path (Split-Path -Parent $projectRoot) "flutter\bin\flutter.bat"
+  if (Test-Path $localFlutter) {
+    return $localFlutter
+  }
+
+  $flutterFromPath = Get-Command flutter -ErrorAction SilentlyContinue
+  if ($flutterFromPath) {
+    return $flutterFromPath.Source
+  }
+
+  throw "Flutter nao encontrado. Instale o Flutter ou deixe-o disponivel no PATH."
+}
 
 function Assert-WindowsDesktopToolchain {
   $vsWhere = Join-Path "${env:ProgramFiles(x86)}" "Microsoft Visual Studio\Installer\vswhere.exe"
@@ -70,9 +84,33 @@ function Get-UniqueArtifactBasePath {
   return $candidate
 }
 
+function Resolve-DartDefineArgument {
+  if (Test-Path $envFile) {
+    return "--dart-define-from-file=$envFile"
+  }
+
+  if ($env:SUPABASE_URL -and $env:SUPABASE_ANON_KEY) {
+    $ciEnvFile = Join-Path $projectRoot "env\supabase.ci.json"
+    $payload = @{
+      SUPABASE_URL = $env:SUPABASE_URL
+      SUPABASE_ANON_KEY = $env:SUPABASE_ANON_KEY
+    } | ConvertTo-Json -Compress
+    Set-Content -Path $ciEnvFile -Value $payload -Encoding ASCII
+    return "--dart-define-from-file=$ciEnvFile"
+  }
+
+  return $null
+}
+
 Push-Location $projectRoot
 try {
   Assert-WindowsDesktopToolchain
+  $flutterSdk = Resolve-FlutterCommand
+  & $iconGeneratorScript
+
+  if (Test-Path ".\build\windows") {
+    Remove-Item ".\build\windows" -Recurse -Force
+  }
 
   $version = Get-AppVersionInfo
   $artifactDir = ".\artifacts\release"
@@ -87,8 +125,9 @@ try {
     "--build-name=$($version.BuildName)",
     "--build-number=$($version.BuildNumber)"
   )
-  if (Test-Path $envFile) {
-    $args += "--dart-define-from-file=$envFile"
+  $dartDefineArg = Resolve-DartDefineArgument
+  if ($dartDefineArg) {
+    $args += $dartDefineArg
   }
   & $flutterSdk @args
   if ($LASTEXITCODE -ne 0) {
@@ -106,5 +145,8 @@ try {
   Write-Host "Zip gerado em: $artifactBase.zip"
 }
 finally {
+  if (Test-Path ".\env\supabase.ci.json") {
+    Remove-Item ".\env\supabase.ci.json" -Force
+  }
   Pop-Location
 }

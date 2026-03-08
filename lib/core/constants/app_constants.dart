@@ -6,4 +6,6 @@ class AppConstants {
   static const defaultDailySessionMinutes = 90;
   static const syncRetryLimit = 5;
   static const defaultChartWindowDays = 7;
+  static const windowsReleaseOwner = 'GabrielContesini';
+  static const windowsReleaseRepo = 'CodeTrailWindows';
 }

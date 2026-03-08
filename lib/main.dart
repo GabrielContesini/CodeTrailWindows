@@ -14,6 +14,7 @@ import 'features/auth/application/auth_controller.dart';
 import 'features/settings/application/settings_controller.dart';
 import 'shared/models/app_enums.dart';
 import 'shared/models/app_view_models.dart';
+import 'shared/widgets/app_update_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +105,9 @@ class _CodeTrailAppState extends ConsumerState<CodeTrailApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       routerConfig: router,
+      builder: (context, child) {
+        return AppUpdateGate(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }

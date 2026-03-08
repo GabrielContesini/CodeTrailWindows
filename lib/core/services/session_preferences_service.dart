@@ -7,6 +7,7 @@ class SessionPreferencesService {
 
   static const _rememberMeKey = 'session.remember_me';
   static const _lastEmailKey = 'session.last_email';
+  static const _dismissedUpdateVersionKey = 'updates.dismissed_version';
 
   Future<bool?> getRememberMe() async {
     final value = await _storage.read(key: _rememberMeKey);
@@ -31,5 +32,17 @@ class SessionPreferencesService {
     }
 
     await _storage.delete(key: _lastEmailKey);
+  }
+
+  Future<String?> getDismissedUpdateVersion() {
+    return _storage.read(key: _dismissedUpdateVersionKey);
+  }
+
+  Future<void> dismissUpdateVersion(String version) {
+    return _storage.write(key: _dismissedUpdateVersionKey, value: version);
+  }
+
+  Future<void> clearDismissedUpdateVersion() {
+    return _storage.delete(key: _dismissedUpdateVersionKey);
   }
 }

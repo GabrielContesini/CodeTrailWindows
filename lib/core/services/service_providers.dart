@@ -8,6 +8,7 @@ import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/study_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/repositories/study_repository.dart';
+import 'app_update_service.dart';
 import 'connectivity_service.dart';
 import 'github_service.dart';
 import 'notification_service.dart';
@@ -33,6 +34,10 @@ final sessionPreferencesProvider = Provider<SessionPreferencesService>((ref) {
 
 final tutorialServiceProvider = Provider<TutorialService>((ref) {
   return TutorialService(ref.watch(secureStorageProvider));
+});
+
+final appUpdateServiceProvider = Provider<AppUpdateService>((_) {
+  return AppUpdateService();
 });
 
 final githubServiceProvider = Provider<GitHubService>((ref) {

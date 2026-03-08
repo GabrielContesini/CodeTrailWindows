@@ -1,8 +1,8 @@
 #define AppName "CodeTrail Windows"
 #define AppPublisher "Gabriel Contesini"
 #define AppExeName "CodeTrailWindows.exe"
-#define AppVersion "1.0.1+2"
-#define AppSourceDir "..\\artifacts\\release\\CodeTrailWindows-1.0.1+2-release"
+#define AppVersion "__APP_VERSION__"
+#define AppSourceDir "__APP_SOURCE_DIR__"
 
 [Setup]
 AppId={{0C27A87D-3AB8-43D6-89B6-E1B09F3B9EE7}
@@ -16,6 +16,7 @@ OutputBaseFilename=CodeTrailWindows-{#AppVersion}-setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\windows\runner\resources\app_icon.ico
 UninstallDisplayIcon={app}\{#AppExeName}
 
 [Languages]
@@ -25,8 +26,8 @@ Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortugue
 Source: "{#AppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\CodeTrail Windows"; Filename: "{app}\{#AppExeName}"
-Name: "{autodesktop}\CodeTrail Windows"; Filename: "{app}\{#AppExeName}"
+Name: "{group}\CodeTrail Windows"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"
+Name: "{autodesktop}\CodeTrail Windows"; Filename: "{app}\{#AppExeName}"; IconFilename: "{app}\{#AppExeName}"
 
 [Run]
 Filename: "{app}\{#AppExeName}"; Description: "Abrir CodeTrail Windows"; Flags: nowait postinstall skipifsilent

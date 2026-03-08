@@ -144,6 +144,20 @@ bool Win32Window::Create(const std::wstring& title,
     return false;
   }
 
+  const auto instance = GetModuleHandle(nullptr);
+  const auto big_icon = static_cast<HICON>(LoadImage(
+      instance, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON,
+      GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR));
+  const auto small_icon = static_cast<HICON>(LoadImage(
+      instance, MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON,
+      GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR));
+  if (big_icon != nullptr) {
+    SendMessage(window, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(big_icon));
+  }
+  if (small_icon != nullptr) {
+    SendMessage(window, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(small_icon));
+  }
+
   UpdateTheme(window);
 
   return OnCreate();

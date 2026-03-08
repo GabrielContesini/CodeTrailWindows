@@ -6,6 +6,7 @@ import '../../../core/router/app_router.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
+import '../../../shared/models/app_update_models.dart';
 import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -13,6 +14,7 @@ import '../../../shared/widgets/page_frame.dart';
 import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
+import '../application/app_update_controller.dart';
 import '../application/settings_controller.dart';
 import 'widgets/settings_common.dart';
 
@@ -25,6 +27,7 @@ class SettingsScreen extends ConsumerWidget {
     final profileAsync = ref.watch(profileProvider);
     final goalAsync = ref.watch(userGoalProvider);
     final tracksAsync = ref.watch(trackBlueprintsProvider);
+    final appUpdateAsync = ref.watch(appUpdateControllerProvider);
     final session = ref.watch(authSessionProvider).asData?.value;
     final userId = ref.watch(currentUserIdProvider);
 
@@ -98,6 +101,7 @@ class SettingsScreen extends ConsumerWidget {
           final profile = profileAsync.asData?.value;
           final goal = goalAsync.asData?.value;
           final tracks = tracksAsync.asData?.value ?? const <TrackBlueprint>[];
+          final updateState = appUpdateAsync.asData?.value;
           final fullName = profile?.fullName ?? 'Seu perfil CodeTrail';
           final email = session?.user.email ?? profile?.email ?? 'Sem e-mail';
           final selectedTrackName = _trackNameFor(
@@ -199,6 +203,12 @@ class SettingsScreen extends ConsumerWidget {
                         onTap: () => _showLanguageSheet(context),
                       ),
                       SettingsActionTile(
+                        icon: Icons.system_update_alt_rounded,
+                        title: 'Atualizações',
+                        subtitle: _updateSubtitle(updateState),
+                        onTap: () => _showUpdateSheet(context, ref),
+                      ),
+                      SettingsActionTile(
                         icon: Icons.sync_rounded,
                         title: 'Sincronização',
                         subtitle:
@@ -249,6 +259,121 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _showUpdateSheet(BuildContext context, WidgetRef ref) async {
+  final state = ref.read(appUpdateControllerProvider).asData?.value;
+
+  await _showSettingsSheet(
+    context: context,
+    title: 'Atualizações do Windows',
+    subtitle:
+        'O app verifica novas versões no GitHub Releases e pode abrir o instalador automaticamente.',
+    builder: (sheetContext, setState) {
+      return Consumer(
+        builder: (context, ref, _) {
+          final controllerState = ref.watch(appUpdateControllerProvider);
+          final snapshot = controllerState.asData?.value ?? state;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _InfoTile(
+                icon: Icons.desktop_windows_rounded,
+                title: 'Versão atual',
+                subtitle: snapshot?.currentVersion ?? 'Não disponível',
+              ),
+              const SizedBox(height: 10),
+              _InfoTile(
+                icon: Icons.cloud_download_outlined,
+                title: 'Status',
+                subtitle: _updateSubtitle(snapshot),
+              ),
+              if (snapshot?.availableUpdate != null) ...[
+                const SizedBox(height: 10),
+                _InfoTile(
+                  icon: Icons.new_releases_outlined,
+                  title: 'Nova versão',
+                  subtitle:
+                      '${snapshot!.availableUpdate!.version} • ${_formatReleaseDate(snapshot.availableUpdate!.publishedAt)}',
+                ),
+              ],
+              if ((snapshot?.errorMessage ?? '').isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  snapshot!.errorMessage!,
+                  style: sheetContext.textTheme.bodySmall?.copyWith(
+                    color: sheetContext.colorScheme.error,
+                  ),
+                ),
+              ],
+              if (snapshot?.isDownloading == true) ...[
+                const SizedBox(height: 14),
+                LinearProgressIndicator(value: snapshot?.downloadProgress),
+              ],
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: controllerState.isLoading || snapshot?.isChecking == true
+                        ? null
+                        : () async {
+                            await ref
+                                .read(appUpdateControllerProvider.notifier)
+                                .checkForUpdates(force: true);
+                          },
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(
+                      snapshot?.isChecking == true
+                          ? 'Verificando...'
+                          : 'Verificar agora',
+                    ),
+                  ),
+                  if (snapshot?.availableUpdate != null)
+                    OutlinedButton.icon(
+                      onPressed: snapshot?.isDownloading == true
+                          ? null
+                          : () async {
+                              await ref
+                                  .read(appUpdateControllerProvider.notifier)
+                                  .openReleaseNotes();
+                            },
+                      icon: const Icon(Icons.open_in_new_rounded),
+                      label: const Text('Ver mudanças'),
+                    ),
+                  if (snapshot?.availableUpdate != null)
+                    FilledButton.icon(
+                      onPressed: snapshot?.isDownloading == true
+                          ? null
+                          : () async {
+                              final started = await ref
+                                  .read(appUpdateControllerProvider.notifier)
+                                  .downloadAndInstall();
+                              if (sheetContext.mounted && started) {
+                                Navigator.of(sheetContext).pop();
+                                context.showAppSnackBar(
+                                  'Instalador iniciado. Conclua a atualização para aplicar a nova versão.',
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.download_rounded),
+                      label: Text(
+                        snapshot?.isDownloading == true
+                            ? 'Baixando...'
+                            : 'Atualizar agora',
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }
 
 Future<void> _showGoalSheet(
@@ -849,4 +974,22 @@ String _trackNameFor(String? trackId, List<TrackBlueprint> blueprints) {
     if (blueprint.track.id == trackId) return blueprint.track.name;
   }
   return 'Trilha ainda não definida';
+}
+
+String _updateSubtitle(AppUpdateState? state) {
+  if (state == null) {
+    return 'Verifique novas versões publicadas para o Windows.';
+  }
+  if (state.isChecking) {
+    return 'Consultando a release mais recente no GitHub.';
+  }
+  if (state.availableUpdate != null) {
+    return 'Nova versão ${state.availableUpdate!.version} pronta para instalar.';
+  }
+  return 'Você já está na versão mais recente (${state.currentVersion}).';
+}
+
+String _formatReleaseDate(DateTime date) {
+  final local = date.toLocal();
+  return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 }
