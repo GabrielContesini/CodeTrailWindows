@@ -96,11 +96,17 @@ $sourceCandidates = @(
 )
 
 $sourcePngPath = $sourceCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $sourcePngPath) {
-  throw "Nao foi encontrado um PNG do CodeTrailIconPack para gerar o icone do Windows."
+$outputIcoPath = Join-Path $projectRoot "windows\runner\resources\app_icon.ico"
+
+if ($sourcePngPath) {
+  Write-IconFile -SourcePngPath $sourcePngPath -OutputIcoPath $outputIcoPath
+  Write-Host "Icone do Windows atualizado em: $outputIcoPath"
+  exit 0
 }
 
-$outputIcoPath = Join-Path $projectRoot "windows\runner\resources\app_icon.ico"
-Write-IconFile -SourcePngPath $sourcePngPath -OutputIcoPath $outputIcoPath
+if (Test-Path $outputIcoPath) {
+  Write-Host "CodeTrailIconPack nao encontrado. Usando o app_icon.ico versionado em: $outputIcoPath"
+  exit 0
+}
 
-Write-Host "Icone do Windows atualizado em: $outputIcoPath"
+throw "Nao foi encontrado um PNG do CodeTrailIconPack e tambem nao existe um app_icon.ico versionado para fallback."
