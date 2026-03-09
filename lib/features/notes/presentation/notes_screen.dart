@@ -4,14 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/utils/layout_utils.dart';
+import '../../../core/utils/note_context_codec.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
+import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../projects/application/projects_controller.dart';
+import '../../tracks/application/tracks_controller.dart';
 import '../application/notes_controller.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
@@ -29,6 +33,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final notesAsync = ref.watch(notesProvider);
+    final trackBlueprints =
+        ref.watch(trackBlueprintsProvider).asData?.value ?? const <TrackBlueprint>[];
+    final projectBundles =
+        ref.watch(projectsProvider).asData?.value ?? const <ProjectBundle>[];
 
     return PageFrame(
       title: 'Notas',
@@ -47,7 +55,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       ),
       actions: [
         FilledButton.icon(
-          onPressed: () => _showNoteDialog(context, ref),
+          onPressed: () => _showNoteDialog(
+            context,
+            ref,
+            trackBlueprints: trackBlueprints,
+            projectBundles: projectBundles,
+          ),
           icon: const Icon(Icons.note_add_outlined),
           label: const Text('Nova nota'),
         ),
@@ -55,6 +68,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           onSelected: (template) => _showNoteDialog(
             context,
             ref,
+            trackBlueprints: trackBlueprints,
+            projectBundles: projectBundles,
             initialFolder: _selectedFolder == 'Todas' ? 'Geral' : _selectedFolder,
             initialTitle: template.defaultTitle,
             initialContent: template.templateContent,
@@ -99,6 +114,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       child: AsyncValueView(
         value: notesAsync,
         data: (notes) {
+          final noteDocuments = <String, NoteContentDocument>{
+            for (final note in notes) note.id: NoteContextCodec.decode(note.content),
+          };
           final folders = <String>{'Geral', ...notes.map((n) => n.folderName)}
             ..removeWhere((item) => item.trim().isEmpty);
           final sortedFolders = folders.toList()..sort();
@@ -110,8 +128,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           final filteredNotes = normalizedQuery.isEmpty
               ? folderFiltered
               : folderFiltered.where((note) {
+                  final document = noteDocuments[note.id] ??
+                      NoteContextCodec.decode(note.content);
                   final haystack =
-                      '${note.title} ${note.content} ${note.folderName}'
+                      '${note.title} ${document.searchableText} ${note.folderName}'
                           .toLowerCase();
                   return haystack.contains(normalizedQuery);
                 }).toList();
@@ -134,7 +154,12 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               subtitle:
                   'Crie sua primeira nota para guardar resumos, comandos e checkpoints da trilha.',
               action: FilledButton.icon(
-                onPressed: () => _showNoteDialog(context, ref),
+                onPressed: () => _showNoteDialog(
+                  context,
+                  ref,
+                  trackBlueprints: trackBlueprints,
+                  projectBundles: projectBundles,
+                ),
                 icon: const Icon(Icons.note_add_outlined),
                 label: const Text('Criar nota'),
               ),
@@ -168,6 +193,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 totalNotes: notes.length,
                 folderCount: sortedFolders.length,
                 recentNotesCount: recentNotesCount,
+                noteDocuments: noteDocuments,
                 onSearchChanged: (value) {
                   setState(() {
                     _searchQuery = value;
@@ -186,6 +212,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 onCreateNote: () => _showNoteDialog(
                   context,
                   ref,
+                  trackBlueprints: trackBlueprints,
+                  projectBundles: projectBundles,
                   initialFolder: _selectedFolder == 'Todas'
                       ? 'Geral'
                       : _selectedFolder,
@@ -194,9 +222,19 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
               final detailPane = _NotesDetailPane(
                 note: selectedNote,
+                noteDocument: selectedNote == null
+                    ? null
+                    : noteDocuments[selectedNote.id] ??
+                        NoteContextCodec.decode(selectedNote.content),
                 onEdit: selectedNote == null
                     ? null
-                    : () => _showNoteDialog(context, ref, note: selectedNote),
+                    : () => _showNoteDialog(
+                          context,
+                          ref,
+                          note: selectedNote,
+                          trackBlueprints: trackBlueprints,
+                          projectBundles: projectBundles,
+                        ),
                 onDelete: selectedNote == null
                     ? null
                     : () async {
@@ -244,6 +282,7 @@ class _NotesListPane extends StatelessWidget {
     required this.totalNotes,
     required this.folderCount,
     required this.recentNotesCount,
+    required this.noteDocuments,
     required this.onSearchChanged,
     required this.onSelectFolder,
     required this.onSelectNote,
@@ -258,6 +297,7 @@ class _NotesListPane extends StatelessWidget {
   final int totalNotes;
   final int folderCount;
   final int recentNotesCount;
+  final Map<String, NoteContentDocument> noteDocuments;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSelectFolder;
   final ValueChanged<String> onSelectNote;
@@ -338,6 +378,7 @@ class _NotesListPane extends StatelessWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final note = notes[index];
+                      final document = noteDocuments[note.id];
                       final selected = note.id == selectedNoteId;
                       return InkWell(
                         borderRadius: BorderRadius.circular(18),
@@ -381,9 +422,20 @@ class _NotesListPane extends StatelessWidget {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+                              if (document != null && document.context.labels.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: document.context.labels
+                                        .map((label) => _ContextPill(label: label))
+                                        .toList(),
+                                  ),
+                                ),
                               const SizedBox(height: 6),
                               Text(
-                                note.content,
+                                (document?.body ?? note.content),
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: context.textTheme.bodySmall,
@@ -404,11 +456,13 @@ class _NotesListPane extends StatelessWidget {
 class _NotesDetailPane extends StatelessWidget {
   const _NotesDetailPane({
     required this.note,
+    required this.noteDocument,
     required this.onEdit,
     required this.onDelete,
   });
 
   final StudyNoteEntity? note;
+  final NoteContentDocument? noteDocument;
   final VoidCallback? onEdit;
   final Future<void> Function()? onDelete;
 
@@ -422,7 +476,9 @@ class _NotesDetailPane extends StatelessWidget {
       );
     }
 
-    final wordCount = _countWords(note!.content);
+    final visibleContent = noteDocument?.body ?? note!.content;
+    final contextLabels = noteDocument?.context.labels ?? const <String>[];
+    final wordCount = _countWords(visibleContent);
     final readingMinutes = _estimateReadingMinutes(wordCount);
 
     return AppCard(
@@ -450,6 +506,7 @@ class _NotesDetailPane extends StatelessWidget {
               ),
               _StatChip(label: 'Palavras', value: '$wordCount'),
               _StatChip(label: 'Leitura', value: '$readingMinutes min'),
+              ...contextLabels.map((label) => _ContextPill(label: label)),
               FilledButton.tonalIcon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
@@ -457,7 +514,7 @@ class _NotesDetailPane extends StatelessWidget {
               ),
               FilledButton.tonalIcon(
                 onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: note!.content));
+                  await Clipboard.setData(ClipboardData(text: visibleContent));
                   if (context.mounted) {
                     context.showAppSnackBar('Conteúdo copiado.');
                   }
@@ -499,13 +556,37 @@ class _NotesDetailPane extends StatelessWidget {
               ),
               child: SingleChildScrollView(
                 child: Text(
-                  note!.content,
+                  visibleContent,
                   style: context.textTheme.bodyLarge,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ContextPill extends StatelessWidget {
+  const _ContextPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: context.colorScheme.primary.withValues(alpha: 0.10),
+      ),
+      child: Text(
+        label,
+        style: context.textTheme.labelMedium?.copyWith(
+          color: context.colorScheme.primary,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -539,6 +620,8 @@ class _StatChip extends StatelessWidget {
 Future<void> _showNoteDialog(
   BuildContext context,
   WidgetRef ref, {
+  required List<TrackBlueprint> trackBlueprints,
+  required List<ProjectBundle> projectBundles,
   StudyNoteEntity? note,
   String initialFolder = 'Geral',
   String? initialTitle,
@@ -546,6 +629,9 @@ Future<void> _showNoteDialog(
 }) async {
   final userId = ref.read(currentUserIdProvider);
   if (userId == null) return;
+  final noteDocument = note == null
+      ? NoteContentDocument(body: initialContent ?? '')
+      : NoteContextCodec.decode(note.content);
 
   final folderController = TextEditingController(
     text: note?.folderName ?? initialFolder,
@@ -554,9 +640,12 @@ Future<void> _showNoteDialog(
     text: note?.title ?? initialTitle ?? '',
   );
   final contentController = TextEditingController(
-    text: note?.content ?? initialContent ?? '',
+    text: noteDocument.body,
   );
   final uuid = const Uuid();
+  String? selectedTrackId = noteDocument.context.trackId;
+  String? selectedModuleId = noteDocument.context.moduleId;
+  String? selectedProjectId = noteDocument.context.projectId;
 
   await showDialog<void>(
     context: context,
@@ -566,76 +655,190 @@ Future<void> _showNoteDialog(
         ideal: 620,
         min: 340,
       );
-      return AlertDialog(
-        title: Text(note == null ? 'Nova nota' : 'Editar nota'),
-        content: SizedBox(
-          width: dialogWidth,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: folderController,
-                  decoration: const InputDecoration(labelText: 'Pasta'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(labelText: 'Título'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentController,
-                  minLines: 10,
-                  maxLines: 14,
-                  decoration: const InputDecoration(
-                    labelText: 'Conteúdo',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final folder = folderController.text.trim().isEmpty
-                  ? 'Geral'
-                  : folderController.text.trim();
-              final title = titleController.text.trim();
-              final content = contentController.text.trim();
-              if (title.isEmpty || content.isEmpty) {
-                dialogContext.showAppSnackBar(
-                  'Preencha título e conteúdo da nota.',
-                );
-                return;
-              }
+      return StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          final selectedTrack = _findTrackBlueprint(
+            trackBlueprints,
+            selectedTrackId,
+          );
+          final availableModules = selectedTrack?.modules ?? const <StudyModuleEntity>[];
 
-              final now = DateTime.now().toUtc();
-              await ref.read(noteActionsProvider).save(
-                    StudyNoteEntity(
-                      id: note?.id ?? uuid.v4(),
-                      userId: userId,
-                      folderName: folder,
-                      title: title,
-                      content: content,
-                      createdAt: note?.createdAt ?? now,
-                      updatedAt: now,
+          return AlertDialog(
+            title: Text(note == null ? 'Nova nota' : 'Editar nota'),
+            content: SizedBox(
+              width: dialogWidth,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: folderController,
+                      decoration: const InputDecoration(labelText: 'Pasta'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(labelText: 'Título'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: trackBlueprints.any(
+                        (item) => item.track.id == selectedTrackId,
+                      )
+                          ? selectedTrackId
+                          : null,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Vincular trilha',
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Sem trilha'),
+                        ),
+                        ...trackBlueprints.map(
+                          (item) => DropdownMenuItem<String?>(
+                            value: item.track.id,
+                            child: Text(item.track.name),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selectedTrackId = value;
+                          if (!availableModules.any((item) => item.id == selectedModuleId)) {
+                            selectedModuleId = null;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: availableModules.any(
+                        (item) => item.id == selectedModuleId,
+                      )
+                          ? selectedModuleId
+                          : null,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Vincular módulo',
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Sem módulo'),
+                        ),
+                        ...availableModules.map(
+                          (item) => DropdownMenuItem<String?>(
+                            value: item.id,
+                            child: Text(item.title),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => selectedModuleId = value),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      initialValue: projectBundles.any(
+                        (item) => item.project.id == selectedProjectId,
+                      )
+                          ? selectedProjectId
+                          : null,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Vincular projeto',
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Sem projeto'),
+                        ),
+                        ...projectBundles.map(
+                          (item) => DropdownMenuItem<String?>(
+                            value: item.project.id,
+                            child: Text(item.project.title),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) =>
+                          setDialogState(() => selectedProjectId = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: contentController,
+                      minLines: 10,
+                      maxLines: 14,
+                      decoration: const InputDecoration(
+                        labelText: 'Conteúdo',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final folder = folderController.text.trim().isEmpty
+                      ? 'Geral'
+                      : folderController.text.trim();
+                  final title = titleController.text.trim();
+                  final content = contentController.text.trim();
+                  if (title.isEmpty || content.isEmpty) {
+                    dialogContext.showAppSnackBar(
+                      'Preencha título e conteúdo da nota.',
+                    );
+                    return;
+                  }
+
+                  final selectedModule = _findModule(
+                    availableModules,
+                    selectedModuleId,
+                  );
+                  final selectedProject = _findProject(
+                    projectBundles,
+                    selectedProjectId,
+                  );
+                  final encodedContent = NoteContextCodec.encode(
+                    body: content,
+                    context: NoteContextLink(
+                      trackId: selectedTrack?.track.id,
+                      trackLabel: selectedTrack?.track.name,
+                      moduleId: selectedModule?.id,
+                      moduleLabel: selectedModule?.title,
+                      projectId: selectedProject?.project.id,
+                      projectLabel: selectedProject?.project.title,
                     ),
                   );
 
-              if (dialogContext.mounted) {
-                Navigator.of(dialogContext).pop();
-              }
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
+                  final now = DateTime.now().toUtc();
+                  await ref.read(noteActionsProvider).save(
+                        StudyNoteEntity(
+                          id: note?.id ?? uuid.v4(),
+                          userId: userId,
+                          folderName: folder,
+                          title: title,
+                          content: encodedContent,
+                          createdAt: note?.createdAt ?? now,
+                          updatedAt: now,
+                        ),
+                      );
+
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          );
+        },
       );
     },
   );
@@ -661,6 +864,45 @@ String _formatDateTime(DateTime value) {
   final hour = local.hour.toString().padLeft(2, '0');
   final minute = local.minute.toString().padLeft(2, '0');
   return '$day/$month/${local.year} • $hour:$minute';
+}
+
+TrackBlueprint? _findTrackBlueprint(
+  List<TrackBlueprint> tracks,
+  String? trackId,
+) {
+  if (trackId == null) return null;
+  for (final item in tracks) {
+    if (item.track.id == trackId) {
+      return item;
+    }
+  }
+  return null;
+}
+
+StudyModuleEntity? _findModule(
+  List<StudyModuleEntity> modules,
+  String? moduleId,
+) {
+  if (moduleId == null) return null;
+  for (final item in modules) {
+    if (item.id == moduleId) {
+      return item;
+    }
+  }
+  return null;
+}
+
+ProjectBundle? _findProject(
+  List<ProjectBundle> projects,
+  String? projectId,
+) {
+  if (projectId == null) return null;
+  for (final item in projects) {
+    if (item.project.id == projectId) {
+      return item;
+    }
+  }
+  return null;
 }
 
 enum _NoteTemplate {

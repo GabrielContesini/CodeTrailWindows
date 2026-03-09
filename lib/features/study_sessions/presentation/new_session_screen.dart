@@ -10,6 +10,7 @@ import '../../../core/services/service_providers.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
+import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
@@ -169,6 +170,7 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
           final selectedTrack = selectedTrackIndex >= 0
               ? tracks[selectedTrackIndex]
               : null;
+          final templates = _sessionTemplatesFor(selectedTrack);
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -225,6 +227,70 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
                             const SizedBox(height: 8),
                             Text(
                               'Enquanto o cronômetro roda, o app mantém uma notificação de sessão ativa no Android.',
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Templates rápidos',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: templates
+                                  .map(
+                                    (template) => InkWell(
+                                      borderRadius: BorderRadius.circular(18),
+                                      onTap: () =>
+                                          _applyTemplate(template, selectedTrack),
+                                      child: Container(
+                                        width: 220,
+                                        padding: const EdgeInsets.all(14),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(18),
+                                          border: Border.all(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.outline,
+                                          ),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .surface
+                                              .withValues(alpha: 0.24),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Icon(
+                                              template.icon,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              template.title,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              template.subtitle,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
                             const SizedBox(height: 24),
                             FilledButton.icon(
@@ -416,4 +482,86 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
     return '$hours:$minutes:$seconds';
   }
+
+  void _applyTemplate(
+    _SessionTemplateOption template,
+    TrackBlueprint? selectedTrack,
+  ) {
+    setState(() {
+      _type = template.type;
+      _productivity = template.productivity;
+      if (selectedTrack != null) {
+        _trackId = selectedTrack.track.id;
+        if (template.prefersCoreModule && selectedTrack.modules.isNotEmpty) {
+          _moduleId = selectedTrack.modules.first.id;
+        }
+      }
+      _notesController.text = template.prefillText(selectedTrack);
+    });
+  }
+
+  List<_SessionTemplateOption> _sessionTemplatesFor(TrackBlueprint? track) {
+    return [
+      _SessionTemplateOption(
+        title: 'Deep focus',
+        subtitle: 'Teoria com objetivo claro e checkpoint de entendimento.',
+        icon: Icons.menu_book_rounded,
+        type: SessionType.theory,
+        productivity: 4,
+        prefillBuilder: (selectedTrack) =>
+            'Objetivo do bloco:\n- Entender o conceito central.\n\nAnotacoes-chave:\n- \n- \n\nProximo passo:\n- ${selectedTrack?.track.name ?? 'Aplicar o conceito em um exemplo rápido.'}',
+      ),
+      _SessionTemplateOption(
+        title: 'Sprint prático',
+        subtitle: 'Mao no codigo, entrega pequena e feedback rapido.',
+        icon: Icons.code_rounded,
+        type: SessionType.practice,
+        productivity: 5,
+        prefersCoreModule: true,
+        prefillBuilder: (selectedTrack) =>
+            'Entregavel da sessao:\n- ${selectedTrack?.modules.isNotEmpty == true ? selectedTrack!.modules.first.title : 'Resolver um bloco prático'}\n\nBloqueios:\n- \n\nEvidencia de progresso:\n- ',
+      ),
+      _SessionTemplateOption(
+        title: 'Revisao ativa',
+        subtitle: 'Consolidar memoria com perguntas, gaps e retomada.',
+        icon: Icons.refresh_rounded,
+        type: SessionType.review,
+        productivity: 4,
+        prefillBuilder: (_) =>
+            'Conteudos revisados:\n- \n- \n\nO que ainda errei:\n- \n\nProxima revisao:\n- ',
+      ),
+      _SessionTemplateOption(
+        title: 'Projeto guiado',
+        subtitle: 'Avance uma etapa concreta do portfolio ou case.',
+        icon: Icons.rocket_launch_outlined,
+        type: SessionType.project,
+        productivity: 5,
+        prefersCoreModule: true,
+        prefillBuilder: (selectedTrack) =>
+            'Etapa do projeto:\n- \n\nLigacao com a trilha:\n- ${selectedTrack?.track.name ?? 'Projeto aplicado'}\n\nResultado da sessao:\n- ',
+      ),
+    ];
+  }
+}
+
+class _SessionTemplateOption {
+  const _SessionTemplateOption({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.type,
+    required this.productivity,
+    required this.prefillBuilder,
+    this.prefersCoreModule = false,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final SessionType type;
+  final int productivity;
+  final bool prefersCoreModule;
+  final String Function(TrackBlueprint? track) prefillBuilder;
+
+  String prefillText(TrackBlueprint? track) => prefillBuilder(track);
 }

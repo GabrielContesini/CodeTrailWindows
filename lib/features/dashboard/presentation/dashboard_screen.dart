@@ -25,6 +25,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final goalAsync = ref.watch(currentGoalProvider);
     final tracksAsync = ref.watch(trackBlueprintsProvider);
     final tasksAsync = ref.watch(tasksProvider);
     final reviewsAsync = ref.watch(reviewsProvider);
@@ -96,6 +97,11 @@ class DashboardScreen extends ConsumerWidget {
                     title: 'Sincronizacao',
                     subtitle:
                         'Esta estacao salva primeiro no cache local e envia para o Supabase quando a rede permite.',
+                  ),
+                  const SizedBox(height: 14),
+                  _WeeklyTargetCard(
+                    summary: summary,
+                    goalAsync: goalAsync,
                   ),
                   const SizedBox(height: 16),
                   _MetricGrid(
@@ -503,6 +509,146 @@ class _MetricGrid extends StatelessWidget {
               .toList(),
         );
       },
+    );
+  }
+}
+
+class _WeeklyTargetCard extends StatelessWidget {
+  const _WeeklyTargetCard({
+    required this.summary,
+    required this.goalAsync,
+  });
+
+  final DashboardSummary summary;
+  final AsyncValue<UserGoalEntity?> goalAsync;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: goalAsync.when(
+        data: (goal) {
+          if (goal == null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Meta semanal',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Defina horas por dia e dias por semana para acompanhar meta, sobra de carga e ritmo real.',
+                ),
+              ],
+            );
+          }
+
+          final targetHours = goal.hoursPerDay * goal.daysPerWeek;
+          final completion = targetHours == 0
+              ? 0.0
+              : (summary.hoursThisWeek / targetHours).clamp(0.0, 1.25);
+          final remainingHours = targetHours - summary.hoursThisWeek;
+          final statusLabel = remainingHours <= 0
+              ? 'Meta batida'
+              : '${remainingHours.toStringAsFixed(1)}h para fechar a semana';
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Meta semanal',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.secondary.withValues(alpha: 0.12),
+                    ),
+                    child: Text(
+                      '${goal.hoursPerDay}h x ${goal.daysPerWeek} dias',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '${summary.hoursThisWeek.toStringAsFixed(1)}h de ${targetHours.toStringAsFixed(0)}h',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: completion > 1 ? 1 : completion,
+                minHeight: 10,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              const SizedBox(height: 10),
+              Text(statusLabel),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MetricChip(label: 'Foco', value: goal.focusType.label),
+                  _MetricChip(
+                    label: 'Prazo',
+                    value:
+                        '${goal.deadline.day}/${goal.deadline.month}/${goal.deadline.year}',
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Text(error.toString()),
+      ),
+    );
+  }
+}
+
+class _MetricChip extends StatelessWidget {
+  const _MetricChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.20),
+      ),
+      child: Text(
+        '$label: $value',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

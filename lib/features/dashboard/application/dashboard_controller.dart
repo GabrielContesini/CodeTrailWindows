@@ -92,3 +92,11 @@ final dashboardSummaryProvider = StreamProvider<DashboardSummary>((ref) {
     },
   );
 });
+
+final currentGoalProvider = FutureProvider<UserGoalEntity?>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) {
+    return null;
+  }
+  return ref.watch(studyRepositoryProvider).getGoal(userId);
+});
