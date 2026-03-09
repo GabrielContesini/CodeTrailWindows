@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -33,6 +35,9 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
       appUpdateControllerProvider,
       _handleUpdateChange,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestUpdateCheckIfNeeded();
+    });
   }
 
   @override
@@ -53,11 +58,7 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
       return;
     }
 
-    if (_requestedForSession) return;
-    _requestedForSession = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appUpdateControllerProvider.notifier).checkForUpdates();
-    });
+    _requestUpdateCheckIfNeeded();
   }
 
   void _handleUpdateChange(
@@ -156,9 +157,15 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = ref.watch(currentUserIdProvider);
     final updateState = ref.watch(appUpdateControllerProvider).asData?.value;
     final session = ref.watch(authSessionProvider).asData?.value;
     final visibleUpdate = updateState?.availableUpdate;
+    if (currentUserId != null && !_requestedForSession) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestUpdateCheckIfNeeded();
+      });
+    }
     final showBanner =
         session != null &&
         updateState != null &&
@@ -203,6 +210,14 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
           ),
       ],
     );
+  }
+
+  void _requestUpdateCheckIfNeeded() {
+    if (!mounted || _requestedForSession) return;
+    final userId = ref.read(currentUserIdProvider);
+    if (userId == null) return;
+    _requestedForSession = true;
+    unawaited(ref.read(appUpdateControllerProvider.notifier).checkForUpdates());
   }
 }
 
