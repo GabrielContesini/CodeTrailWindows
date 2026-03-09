@@ -17,6 +17,7 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
+import '../application/session_templates_controller.dart';
 import '../application/study_sessions_controller.dart';
 
 class NewSessionScreen extends ConsumerStatefulWidget {
@@ -126,6 +127,9 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final tracksAsync = ref.watch(trackBlueprintsProvider);
+    final templates =
+        ref.watch(sessionTemplatesProvider).asData?.value ??
+        StudySessionTemplate.defaults();
     final userId = ref.watch(currentUserIdProvider);
 
     return PageFrame(
@@ -170,7 +174,6 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
           final selectedTrack = selectedTrackIndex >= 0
               ? tracks[selectedTrackIndex]
               : null;
-          final templates = _sessionTemplatesFor(selectedTrack);
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -229,10 +232,27 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
                               'Enquanto o cronômetro roda, o app mantém uma notificação de sessão ativa no Android.',
                             ),
                             const SizedBox(height: 20),
-                            Text(
-                              'Templates rápidos',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Templates rápidos',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Gerenciar templates',
+                                  onPressed: () => _showTemplateManagerDialog(
+                                    context,
+                                    ref,
+                                    templates,
+                                  ),
+                                  icon: const Icon(Icons.tune_rounded),
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 10),
                             Wrap(
@@ -264,7 +284,7 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Icon(
-                                              template.icon,
+                                              _templateIcon(template),
                                               color: Theme.of(
                                                 context,
                                               ).colorScheme.primary,
@@ -484,7 +504,7 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
   }
 
   void _applyTemplate(
-    _SessionTemplateOption template,
+    StudySessionTemplate template,
     TrackBlueprint? selectedTrack,
   ) {
     setState(() {
@@ -496,72 +516,249 @@ class _NewSessionScreenState extends ConsumerState<NewSessionScreen> {
           _moduleId = selectedTrack.modules.first.id;
         }
       }
-      _notesController.text = template.prefillText(selectedTrack);
+      _notesController.text = template.renderNotes(
+        trackName: selectedTrack?.track.name,
+        moduleTitle: selectedTrack?.modules.isNotEmpty == true
+            ? selectedTrack!.modules.first.title
+            : null,
+      );
     });
-  }
-
-  List<_SessionTemplateOption> _sessionTemplatesFor(TrackBlueprint? track) {
-    return [
-      _SessionTemplateOption(
-        title: 'Deep focus',
-        subtitle: 'Teoria com objetivo claro e checkpoint de entendimento.',
-        icon: Icons.menu_book_rounded,
-        type: SessionType.theory,
-        productivity: 4,
-        prefillBuilder: (selectedTrack) =>
-            'Objetivo do bloco:\n- Entender o conceito central.\n\nAnotacoes-chave:\n- \n- \n\nProximo passo:\n- ${selectedTrack?.track.name ?? 'Aplicar o conceito em um exemplo rápido.'}',
-      ),
-      _SessionTemplateOption(
-        title: 'Sprint prático',
-        subtitle: 'Mao no codigo, entrega pequena e feedback rapido.',
-        icon: Icons.code_rounded,
-        type: SessionType.practice,
-        productivity: 5,
-        prefersCoreModule: true,
-        prefillBuilder: (selectedTrack) =>
-            'Entregavel da sessao:\n- ${selectedTrack?.modules.isNotEmpty == true ? selectedTrack!.modules.first.title : 'Resolver um bloco prático'}\n\nBloqueios:\n- \n\nEvidencia de progresso:\n- ',
-      ),
-      _SessionTemplateOption(
-        title: 'Revisao ativa',
-        subtitle: 'Consolidar memoria com perguntas, gaps e retomada.',
-        icon: Icons.refresh_rounded,
-        type: SessionType.review,
-        productivity: 4,
-        prefillBuilder: (_) =>
-            'Conteudos revisados:\n- \n- \n\nO que ainda errei:\n- \n\nProxima revisao:\n- ',
-      ),
-      _SessionTemplateOption(
-        title: 'Projeto guiado',
-        subtitle: 'Avance uma etapa concreta do portfolio ou case.',
-        icon: Icons.rocket_launch_outlined,
-        type: SessionType.project,
-        productivity: 5,
-        prefersCoreModule: true,
-        prefillBuilder: (selectedTrack) =>
-            'Etapa do projeto:\n- \n\nLigacao com a trilha:\n- ${selectedTrack?.track.name ?? 'Projeto aplicado'}\n\nResultado da sessao:\n- ',
-      ),
-    ];
   }
 }
 
-class _SessionTemplateOption {
-  const _SessionTemplateOption({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.type,
-    required this.productivity,
-    required this.prefillBuilder,
-    this.prefersCoreModule = false,
-  });
+IconData _templateIcon(StudySessionTemplate template) {
+  switch (template.type) {
+    case SessionType.theory:
+      return Icons.menu_book_rounded;
+    case SessionType.practice:
+      return Icons.code_rounded;
+    case SessionType.review:
+      return Icons.refresh_rounded;
+    case SessionType.project:
+      return Icons.rocket_launch_outlined;
+    case SessionType.exercises:
+      return Icons.fitness_center_rounded;
+  }
+}
 
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final SessionType type;
-  final int productivity;
-  final bool prefersCoreModule;
-  final String Function(TrackBlueprint? track) prefillBuilder;
+Future<void> _showTemplateManagerDialog(
+  BuildContext context,
+  WidgetRef ref,
+  List<StudySessionTemplate> templates,
+) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Templates de sessão'),
+        content: SizedBox(
+          width: 680,
+          child: ListView.separated(
+            shrinkWrap: true,
+            itemCount: templates.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final template = templates[index];
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _templateIcon(template),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            template.title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(template.subtitle),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        await _showTemplateEditorDialog(
+                          dialogContext,
+                          ref,
+                          templates: templates,
+                          template: template,
+                        );
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await ref.read(sessionTemplatesProvider.notifier).resetTemplates();
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            child: const Text('Restaurar padrão'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Fechar'),
+          ),
+        ],
+      );
+    },
+  );
+}
 
-  String prefillText(TrackBlueprint? track) => prefillBuilder(track);
+Future<void> _showTemplateEditorDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required List<StudySessionTemplate> templates,
+  required StudySessionTemplate template,
+}) async {
+  final titleController = TextEditingController(text: template.title);
+  final subtitleController = TextEditingController(text: template.subtitle);
+  final notesController = TextEditingController(text: template.notesTemplate);
+  var type = template.type;
+  var productivity = template.productivity;
+  var prefersCoreModule = template.prefersCoreModule;
+
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('Editar template'),
+            content: SizedBox(
+              width: 620,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(labelText: 'Título'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: subtitleController,
+                      decoration: const InputDecoration(labelText: 'Resumo'),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<SessionType>(
+                      initialValue: type,
+                      decoration: const InputDecoration(labelText: 'Tipo'),
+                      items: SessionType.values
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text(item.label),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) =>
+                          setDialogState(() => type = value ?? type),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      initialValue: productivity,
+                      decoration:
+                          const InputDecoration(labelText: 'Produtividade alvo'),
+                      items: List.generate(5, (index) => index + 1)
+                          .map(
+                            (item) => DropdownMenuItem(
+                              value: item,
+                              child: Text('$item'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setDialogState(
+                        () => productivity = value ?? productivity,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Preferir módulo core'),
+                      subtitle: const Text(
+                        'Aplica o primeiro módulo ativo quando houver trilha selecionada.',
+                      ),
+                      value: prefersCoreModule,
+                      onChanged: (value) =>
+                          setDialogState(() => prefersCoreModule = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesController,
+                      minLines: 8,
+                      maxLines: 12,
+                      decoration: const InputDecoration(
+                        labelText: 'Template das notas',
+                        hintText: 'Use {track} e {module} como placeholders.',
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final nextTemplate = StudySessionTemplate(
+                    id: template.id,
+                    title: titleController.text.trim().isEmpty
+                        ? template.title
+                        : titleController.text.trim(),
+                    subtitle: subtitleController.text.trim().isEmpty
+                        ? template.subtitle
+                        : subtitleController.text.trim(),
+                    type: type,
+                    productivity: productivity,
+                    notesTemplate: notesController.text.trim().isEmpty
+                        ? template.notesTemplate
+                        : notesController.text.trim(),
+                    prefersCoreModule: prefersCoreModule,
+                  );
+                  final nextTemplates = templates
+                      .map((item) => item.id == template.id ? nextTemplate : item)
+                      .toList();
+                  await ref
+                      .read(sessionTemplatesProvider.notifier)
+                      .saveTemplates(nextTemplates);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                },
+                child: const Text('Salvar'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 }

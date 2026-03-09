@@ -14,6 +14,7 @@ import 'github_service.dart';
 import 'notification_service.dart';
 import 'seed_service.dart';
 import 'session_preferences_service.dart';
+import 'session_template_service.dart';
 import 'startup_coordinator.dart';
 import 'sync_service.dart';
 import 'telemetry_heartbeat_service.dart';
@@ -35,6 +36,10 @@ final sessionPreferencesProvider = Provider<SessionPreferencesService>((ref) {
 
 final tutorialServiceProvider = Provider<TutorialService>((ref) {
   return TutorialService(ref.watch(secureStorageProvider));
+});
+
+final sessionTemplateServiceProvider = Provider<SessionTemplateService>((ref) {
+  return SessionTemplateService(ref.watch(secureStorageProvider));
 });
 
 final appUpdateServiceProvider = Provider<AppUpdateService>((_) {

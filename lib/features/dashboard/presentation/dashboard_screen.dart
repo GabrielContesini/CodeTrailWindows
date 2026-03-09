@@ -16,6 +16,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../reviews/application/reviews_controller.dart';
+import '../../settings/application/settings_controller.dart';
 import '../../tasks/application/tasks_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 
@@ -524,102 +525,362 @@ class _WeeklyTargetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      child: goalAsync.when(
-        data: (goal) {
-          if (goal == null) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Meta semanal',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+    return Consumer(
+      builder: (context, ref, _) {
+        final userId = ref.watch(currentUserIdProvider);
+
+        Future<void> openEditor(UserGoalEntity? goal) async {
+          if (userId == null) {
+            return;
+          }
+          await _showWeeklyTargetSheet(
+            context: context,
+            ref: ref,
+            userId: userId,
+            goal: goal,
+          );
+        }
+
+        return AppCard(
+          child: goalAsync.when(
+            data: (goal) {
+              if (goal == null) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Meta semanal',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: userId == null ? null : () => openEditor(null),
+                          icon: const Icon(Icons.edit_calendar_outlined),
+                          label: const Text('Definir agora'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Defina horas por dia e dias por semana para acompanhar meta, sobra de carga e ritmo real.',
+                    ),
+                  ],
+                );
+              }
+
+              final targetHours = goal.hoursPerDay * goal.daysPerWeek;
+              final completion = targetHours == 0
+                  ? 0.0
+                  : (summary.hoursThisWeek / targetHours).clamp(0.0, 1.25);
+              final remainingHours = targetHours - summary.hoursThisWeek;
+              final statusLabel = remainingHours <= 0
+                  ? 'Meta batida'
+                  : '${remainingHours.toStringAsFixed(1)}h para fechar a semana';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Meta semanal',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Editar meta semanal',
+                        onPressed: userId == null ? null : () => openEditor(goal),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.secondary.withValues(alpha: 0.12),
+                        ),
+                        child: Text(
+                          '${goal.hoursPerDay}h x ${goal.daysPerWeek} dias',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Defina horas por dia e dias por semana para acompanhar meta, sobra de carga e ritmo real.',
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    '${summary.hoursThisWeek.toStringAsFixed(1)}h de ${targetHours.toStringAsFixed(0)}h',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  LinearProgressIndicator(
+                    value: completion > 1 ? 1 : completion,
+                    minHeight: 10,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(statusLabel),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _MetricChip(label: 'Foco', value: goal.focusType.label),
+                      _MetricChip(
+                        label: 'Prazo',
+                        value:
+                            '${goal.deadline.day}/${goal.deadline.month}/${goal.deadline.year}',
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Text(error.toString()),
+          ),
+        );
+      },
+    );
+  }
+}
+
+Future<void> _showWeeklyTargetSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String userId,
+  required UserGoalEntity? goal,
+}) async {
+  var hoursPerDay = goal?.hoursPerDay ?? 2;
+  var daysPerWeek = goal?.daysPerWeek ?? 5;
+  var deadline = goal?.deadline ?? DateTime.now().add(const Duration(days: 90));
+  var focusType = goal?.focusType ?? FocusType.solidFoundation;
+  var isSaving = false;
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (modalContext) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          Future<void> pickDeadline() async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: deadline,
+              firstDate: DateTime.now().subtract(const Duration(days: 1)),
+              lastDate: DateTime.now().add(const Duration(days: 730)),
             );
+            if (picked == null) {
+              return;
+            }
+            setModalState(() => deadline = picked);
           }
 
-          final targetHours = goal.hoursPerDay * goal.daysPerWeek;
-          final completion = targetHours == 0
-              ? 0.0
-              : (summary.hoursThisWeek / targetHours).clamp(0.0, 1.25);
-          final remainingHours = targetHours - summary.hoursThisWeek;
-          final statusLabel = remainingHours <= 0
-              ? 'Meta batida'
-              : '${remainingHours.toStringAsFixed(1)}h para fechar a semana';
+          Future<void> saveGoal() async {
+            setModalState(() => isSaving = true);
+            final now = DateTime.now().toUtc();
+            final nextGoal = UserGoalEntity(
+              id: goal?.id ?? userId,
+              userId: userId,
+              primaryGoal: goal?.primaryGoal ?? 'Construir consistencia semanal',
+              desiredArea: goal?.desiredArea ?? 'Tecnologia',
+              focusType: focusType,
+              hoursPerDay: hoursPerDay,
+              daysPerWeek: daysPerWeek,
+              deadline: deadline,
+              currentLevel: goal?.currentLevel ?? SkillLevel.beginner,
+              generatedPlan:
+                  'Plano semanal ajustado para $hoursPerDay h por dia em $daysPerWeek dias por semana.',
+              createdAt: goal?.createdAt ?? now,
+              updatedAt: now,
+            );
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+            try {
+              await ref.read(appSettingsProvider.notifier).saveGoal(nextGoal);
+              ref.invalidate(currentGoalProvider);
+              if (!context.mounted) {
+                return;
+              }
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Meta semanal atualizada.')),
+              );
+            } finally {
+              if (context.mounted) {
+                setModalState(() => isSaving = false);
+              }
+            }
+          }
+
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 16,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: AppCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Meta semanal',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  Text(
+                    'Editar meta semanal',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Ajuste ritmo, prazo e foco sem sair do dashboard.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 18),
+                  _GoalStepperField(
+                    label: 'Horas por dia',
+                    valueLabel: '$hoursPerDay h',
+                    onDecrement: hoursPerDay > 1
+                        ? () => setModalState(() => hoursPerDay -= 1)
+                        : null,
+                    onIncrement: hoursPerDay < 12
+                        ? () => setModalState(() => hoursPerDay += 1)
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  _GoalStepperField(
+                    label: 'Dias por semana',
+                    valueLabel: '$daysPerWeek dias',
+                    onDecrement: daysPerWeek > 1
+                        ? () => setModalState(() => daysPerWeek -= 1)
+                        : null,
+                    onIncrement: daysPerWeek < 7
+                        ? () => setModalState(() => daysPerWeek += 1)
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Foco principal',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.secondary.withValues(alpha: 0.12),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: FocusType.values
+                        .map(
+                          (item) => ChoiceChip(
+                            label: Text(item.label),
+                            selected: focusType == item,
+                            onSelected: (_) => setModalState(() {
+                              focusType = item;
+                            }),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: pickDeadline,
+                    icon: const Icon(Icons.event_outlined),
+                    label: Text(
+                      'Prazo: ${deadline.day}/${deadline.month}/${deadline.year}',
                     ),
-                    child: Text(
-                      '${goal.hoursPerDay}h x ${goal.daysPerWeek} dias',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isSaving
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: const Text('Cancelar'),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: isSaving ? null : saveGoal,
+                          child: Text(isSaving ? 'Salvando...' : 'Salvar meta'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                '${summary.hoursThisWeek.toStringAsFixed(1)}h de ${targetHours.toStringAsFixed(0)}h',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: completion > 1 ? 1 : completion,
-                minHeight: 10,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              const SizedBox(height: 10),
-              Text(statusLabel),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _MetricChip(label: 'Foco', value: goal.focusType.label),
-                  _MetricChip(
-                    label: 'Prazo',
-                    value:
-                        '${goal.deadline.day}/${goal.deadline.month}/${goal.deadline.year}',
-                  ),
-                ],
-              ),
-            ],
+            ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Text(error.toString()),
+      );
+    },
+  );
+}
+
+class _GoalStepperField extends StatelessWidget {
+  const _GoalStepperField({
+    required this.label,
+    required this.valueLabel,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final String label;
+  final String valueLabel;
+  final VoidCallback? onDecrement;
+  final VoidCallback? onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+          IconButton(
+            onPressed: onDecrement,
+            icon: const Icon(Icons.remove_circle_outline),
+          ),
+          Text(
+            valueLabel,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          IconButton(
+            onPressed: onIncrement,
+            icon: const Icon(Icons.add_circle_outline),
+          ),
+        ],
       ),
     );
   }

@@ -221,6 +221,105 @@ class StudyPlanPreview {
   final List<String> weeklyPlaybook;
 }
 
+class StudySessionTemplate {
+  const StudySessionTemplate({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.type,
+    required this.productivity,
+    required this.notesTemplate,
+    this.prefersCoreModule = false,
+  });
+
+  final String id;
+  final String title;
+  final String subtitle;
+  final SessionType type;
+  final int productivity;
+  final String notesTemplate;
+  final bool prefersCoreModule;
+
+  static List<StudySessionTemplate> defaults() {
+    return const [
+      StudySessionTemplate(
+        id: 'deep_focus',
+        title: 'Deep focus',
+        subtitle: 'Teoria com objetivo claro e checkpoint de entendimento.',
+        type: SessionType.theory,
+        productivity: 4,
+        notesTemplate:
+            'Objetivo do bloco:\n- Entender o conceito central.\n\nAnotacoes-chave:\n- \n- \n\nProximo passo:\n- Aplicar em {track}.',
+      ),
+      StudySessionTemplate(
+        id: 'practice_sprint',
+        title: 'Sprint prático',
+        subtitle: 'Mao no codigo, entrega pequena e feedback rapido.',
+        type: SessionType.practice,
+        productivity: 5,
+        prefersCoreModule: true,
+        notesTemplate:
+            'Entregavel da sessao:\n- {module}\n\nBloqueios:\n- \n\nEvidencia de progresso:\n- ',
+      ),
+      StudySessionTemplate(
+        id: 'review_loop',
+        title: 'Revisao ativa',
+        subtitle: 'Consolidar memoria com perguntas, gaps e retomada.',
+        type: SessionType.review,
+        productivity: 4,
+        notesTemplate:
+            'Conteudos revisados:\n- \n- \n\nO que ainda errei:\n- \n\nProxima revisao:\n- ',
+      ),
+      StudySessionTemplate(
+        id: 'project_push',
+        title: 'Projeto guiado',
+        subtitle: 'Avance uma etapa concreta do portfolio ou case.',
+        type: SessionType.project,
+        productivity: 5,
+        prefersCoreModule: true,
+        notesTemplate:
+            'Etapa do projeto:\n- \n\nLigacao com a trilha:\n- {track}\n\nResultado da sessao:\n- ',
+      ),
+    ];
+  }
+
+  String renderNotes({
+    String? trackName,
+    String? moduleTitle,
+  }) {
+    return notesTemplate
+        .replaceAll('{track}', trackName ?? 'sua trilha atual')
+        .replaceAll('{module}', moduleTitle ?? 'o proximo bloco pratico');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'subtitle': subtitle,
+      'type': type.name,
+      'productivity': productivity,
+      'notes_template': notesTemplate,
+      'prefers_core_module': prefersCoreModule,
+    };
+  }
+
+  factory StudySessionTemplate.fromJson(Map<String, dynamic> json) {
+    return StudySessionTemplate(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      subtitle: json['subtitle'] as String,
+      type: SessionType.values.firstWhere(
+        (item) => item.name == json['type'],
+        orElse: () => SessionType.practice,
+      ),
+      productivity: (json['productivity'] as num).toInt(),
+      notesTemplate: json['notes_template'] as String,
+      prefersCoreModule: json['prefers_core_module'] as bool? ?? false,
+    );
+  }
+}
+
 class OnboardingInput {
   const OnboardingInput({
     required this.userId,
