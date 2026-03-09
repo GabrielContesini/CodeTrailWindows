@@ -34,7 +34,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   Widget build(BuildContext context) {
     final notesAsync = ref.watch(notesProvider);
     final trackBlueprints =
-        ref.watch(trackBlueprintsProvider).asData?.value ?? const <TrackBlueprint>[];
+        ref.watch(trackBlueprintsProvider).asData?.value ??
+        const <TrackBlueprint>[];
     final projectBundles =
         ref.watch(projectsProvider).asData?.value ?? const <ProjectBundle>[];
 
@@ -70,7 +71,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             ref,
             trackBlueprints: trackBlueprints,
             projectBundles: projectBundles,
-            initialFolder: _selectedFolder == 'Todas' ? 'Geral' : _selectedFolder,
+            initialFolder: _selectedFolder == 'Todas'
+                ? 'Geral'
+                : _selectedFolder,
             initialTitle: template.defaultTitle,
             initialContent: template.templateContent,
           ),
@@ -95,10 +98,10 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.30),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              color: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.30),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -115,7 +118,8 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         value: notesAsync,
         data: (notes) {
           final noteDocuments = <String, NoteContentDocument>{
-            for (final note in notes) note.id: NoteContextCodec.decode(note.content),
+            for (final note in notes)
+              note.id: NoteContextCodec.decode(note.content),
           };
           final folders = <String>{'Geral', ...notes.map((n) => n.folderName)}
             ..removeWhere((item) => item.trim().isEmpty);
@@ -124,11 +128,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           final normalizedQuery = _searchQuery.trim().toLowerCase();
           final folderFiltered = _selectedFolder == 'Todas'
               ? notes
-              : notes.where((note) => note.folderName == _selectedFolder).toList();
+              : notes
+                    .where((note) => note.folderName == _selectedFolder)
+                    .toList();
           final filteredNotes = normalizedQuery.isEmpty
               ? folderFiltered
               : folderFiltered.where((note) {
-                  final document = noteDocuments[note.id] ??
+                  final document =
+                      noteDocuments[note.id] ??
                       NoteContextCodec.decode(note.content);
                   final haystack =
                       '${note.title} ${document.searchableText} ${note.folderName}'
@@ -137,10 +144,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 }).toList();
           final recentNotesCount = notes
               .where(
-                (note) =>
-                    note.updatedAt.isAfter(
-                      DateTime.now().toUtc().subtract(const Duration(days: 7)),
-                    ),
+                (note) => note.updatedAt.isAfter(
+                  DateTime.now().toUtc().subtract(const Duration(days: 7)),
+                ),
               )
               .length;
 
@@ -166,9 +172,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             );
           }
 
-          _selectedNoteId ??= filteredNotes.isNotEmpty ? filteredNotes.first.id : null;
+          _selectedNoteId ??= filteredNotes.isNotEmpty
+              ? filteredNotes.first.id
+              : null;
           if (filteredNotes.every((note) => note.id != _selectedNoteId)) {
-            _selectedNoteId = filteredNotes.isNotEmpty ? filteredNotes.first.id : null;
+            _selectedNoteId = filteredNotes.isNotEmpty
+                ? filteredNotes.first.id
+                : null;
           }
 
           StudyNoteEntity? selectedNote;
@@ -178,11 +188,13 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               break;
             }
           }
-          selectedNote ??= filteredNotes.isNotEmpty ? filteredNotes.first : null;
+          selectedNote ??= filteredNotes.isNotEmpty
+              ? filteredNotes.first
+              : null;
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 1380;
+              final wide = constraints.maxWidth >= 1340;
               final medium = constraints.maxWidth >= 1040;
 
               final shelfPane = _FolderShelfPane(
@@ -234,16 +246,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 noteDocument: selectedNote == null
                     ? null
                     : noteDocuments[selectedNote.id] ??
-                        NoteContextCodec.decode(selectedNote.content),
+                          NoteContextCodec.decode(selectedNote.content),
                 onEdit: selectedNote == null
                     ? null
                     : () => _showNoteDialog(
-                          context,
-                          ref,
-                          note: selectedNote,
-                          trackBlueprints: trackBlueprints,
-                          projectBundles: projectBundles,
-                        ),
+                        context,
+                        ref,
+                        note: selectedNote,
+                        trackBlueprints: trackBlueprints,
+                        projectBundles: projectBundles,
+                      ),
                 onDelete: selectedNote == null
                     ? null
                     : () async {
@@ -289,9 +301,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
               return Row(
                 children: [
-                  SizedBox(width: 286, child: shelfPane),
+                  SizedBox(width: 248, child: shelfPane),
                   const SizedBox(width: 14),
-                  SizedBox(width: 370, child: listPane),
+                  SizedBox(width: 330, child: listPane),
                   const SizedBox(width: 14),
                   Expanded(child: detailPane),
                 ],
@@ -344,16 +356,22 @@ class _NotesListPane extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Estante de páginas',
+                      selectedFolder == 'Todas'
+                          ? 'Páginas do workspace'
+                          : 'Páginas de $selectedFolder',
                       style: context.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Abra cadernos por pasta e encontre a página certa sem misturar tudo.',
+                      selectedFolder == 'Todas'
+                          ? 'Tudo o que foi registrado nos seus cadernos, ordenado por atividade.'
+                          : 'Lista enxuta das páginas deste caderno.',
                       style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurface.withValues(alpha: 0.72),
+                        color: context.colorScheme.onSurface.withValues(
+                          alpha: 0.72,
+                        ),
                       ),
                     ),
                   ],
@@ -367,14 +385,45 @@ class _NotesListPane extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _StatChip(label: 'Páginas', value: '$totalNotes'),
-              _StatChip(label: 'Cadernos', value: '$folderCount'),
-              _StatChip(label: '7 dias', value: '$recentNotesCount'),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: context.colorScheme.surface.withValues(alpha: 0.18),
+              border: Border.all(color: context.colorScheme.outline),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$totalNotes páginas • $folderCount cadernos • $recentNotesCount atualizadas nos últimos 7 dias',
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurface.withValues(
+                        alpha: 0.72,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: context.colorScheme.primary.withValues(alpha: 0.10),
+                  ),
+                  child: Text(
+                    selectedFolder,
+                    style: context.textTheme.labelMedium?.copyWith(
+                      color: context.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           TextField(
@@ -387,54 +436,8 @@ class _NotesListPane extends StatelessWidget {
                   : IconButton(
                       onPressed: () => onSearchChanged(''),
                       icon: const Icon(Icons.close_rounded),
-              ),
+                    ),
             ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selectedFolder == 'Todas'
-                          ? 'Páginas do workspace'
-                          : 'Páginas de $selectedFolder',
-                      style: context.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      selectedFolder == 'Todas'
-                          ? 'Resultados de todos os cadernos do workspace.'
-                          : 'Filtro ativo somente para o caderno selecionado.',
-                      style: context.textTheme.bodySmall?.copyWith(
-                        color: context.colorScheme.onSurface.withValues(alpha: 0.68),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: context.colorScheme.primary.withValues(alpha: 0.10),
-                  border: Border.all(
-                    color: context.colorScheme.primary.withValues(alpha: 0.24),
-                  ),
-                ),
-                child: Text(
-                  selectedFolder,
-                  style: context.textTheme.labelLarge?.copyWith(
-                    color: context.colorScheme.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
           ),
           const SizedBox(height: 10),
           Expanded(
@@ -643,24 +646,35 @@ class _FolderShelfPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleFolders = folders.where((folder) => folder != 'Todas').toList();
+    final visibleFolders = folders
+        .where((folder) => folder != 'Todas')
+        .toList();
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pastas do caderno',
+            'Pastas',
             style: context.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Cada pasta funciona como uma lombada principal para teoria, prática e revisões.',
+            'Selecione um caderno para filtrar as páginas sem duplicar a navegação.',
             style: context.textTheme.bodySmall?.copyWith(
               color: context.colorScheme.onSurface.withValues(alpha: 0.72),
             ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatChip(label: 'Total', value: '$totalNotes'),
+              _StatChip(label: '7 dias', value: '$recentNotesCount'),
+            ],
           ),
           const SizedBox(height: 14),
           Expanded(
@@ -701,7 +715,9 @@ class _FolderShelfPane extends StatelessWidget {
     }
 
     final folder = visibleFolders[index - 1];
-    final folderNotes = allNotes.where((note) => note.folderName == folder).toList();
+    final folderNotes = allNotes
+        .where((note) => note.folderName == folder)
+        .toList();
     folderNotes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
     final recentCount = folderNotes
         .where(
@@ -753,70 +769,72 @@ class _NotebookShelfCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: EdgeInsets.all(compact ? 14 : 16),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
                 ? accentColor.withValues(alpha: 0.64)
                 : context.colorScheme.outline,
           ),
-          gradient: LinearGradient(
-            colors: [
-              accentColor.withValues(alpha: selected ? 0.24 : 0.16),
-              context.colorScheme.surface.withValues(alpha: 0.18),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: selected
+              ? accentColor.withValues(alpha: 0.16)
+              : context.colorScheme.surface.withValues(alpha: 0.18),
           boxShadow: selected
               ? [
                   BoxShadow(
-                    color: accentColor.withValues(alpha: 0.18),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
+                    color: accentColor.withValues(alpha: 0.12),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
                   ),
                 ]
               : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 52,
-              height: 8,
+              width: 10,
+              height: compact ? 54 : 62,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: accentColor.withValues(alpha: 0.92),
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.textTheme.bodySmall?.copyWith(
+                      color: context.colorScheme.onSurface.withValues(
+                        alpha: 0.72,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: context.textTheme.bodySmall?.copyWith(
-                color: context.colorScheme.onSurface.withValues(alpha: 0.72),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StatChip(label: 'Páginas', value: '$noteCount'),
-                if (!compact) _StatChip(label: '7 dias', value: '$recentCount'),
-              ],
-            ),
+            const SizedBox(width: 10),
+            _StatChip(label: 'Páginas', value: '$noteCount'),
+            if (!compact) ...[
+              const SizedBox(width: 8),
+              _StatChip(label: '7 dias', value: '$recentCount'),
+            ],
           ],
         ),
       ),
@@ -849,9 +867,9 @@ class _NotebookNoteCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected
                 ? accentColor.withValues(alpha: 0.60)
@@ -870,22 +888,19 @@ class _NotebookNoteCard extends StatelessWidget {
                 ]
               : null,
         ),
-        child: Stack(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: 10,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: accentColor.withValues(alpha: 0.78),
-                ),
+            Container(
+              width: 8,
+              height: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: accentColor.withValues(alpha: 0.78),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.only(left: 24),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -910,17 +925,18 @@ class _NotebookNoteCard extends StatelessWidget {
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
-                      children: labels.take(3).map((label) => _ContextPill(label: label)).toList(),
+                      children: labels
+                          .take(3)
+                          .map((label) => _ContextPill(label: label))
+                          .toList(),
                     ),
                   ],
                   const SizedBox(height: 10),
                   Text(
                     previewText.isEmpty ? 'Página vazia.' : previewText,
-                    maxLines: 4,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
-                    style: context.textTheme.bodyMedium?.copyWith(
-                      height: 1.55,
-                    ),
+                    style: context.textTheme.bodyMedium?.copyWith(height: 1.45),
                   ),
                 ],
               ),
@@ -1031,9 +1047,7 @@ Future<void> _showNoteDialog(
   final titleController = TextEditingController(
     text: note?.title ?? initialTitle ?? '',
   );
-  final contentController = TextEditingController(
-    text: noteDocument.body,
-  );
+  final contentController = TextEditingController(text: noteDocument.body);
   final uuid = const Uuid();
   String? selectedTrackId = noteDocument.context.trackId;
   String? selectedModuleId = noteDocument.context.moduleId;
@@ -1053,10 +1067,13 @@ Future<void> _showNoteDialog(
             trackBlueprints,
             selectedTrackId,
           );
-          final availableModules = selectedTrack?.modules ?? const <StudyModuleEntity>[];
+          final availableModules =
+              selectedTrack?.modules ?? const <StudyModuleEntity>[];
 
           return AlertDialog(
-            title: Text(note == null ? 'Nova página do caderno' : 'Editar página'),
+            title: Text(
+              note == null ? 'Nova página do caderno' : 'Editar página',
+            ),
             content: SizedBox(
               width: dialogWidth,
               child: SingleChildScrollView(
@@ -1065,18 +1082,23 @@ Future<void> _showNoteDialog(
                   children: [
                     TextField(
                       controller: folderController,
-                      decoration: const InputDecoration(labelText: 'Caderno / pasta'),
+                      decoration: const InputDecoration(
+                        labelText: 'Caderno / pasta',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Título da página'),
+                      decoration: const InputDecoration(
+                        labelText: 'Título da página',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      initialValue: trackBlueprints.any(
-                        (item) => item.track.id == selectedTrackId,
-                      )
+                      initialValue:
+                          trackBlueprints.any(
+                            (item) => item.track.id == selectedTrackId,
+                          )
                           ? selectedTrackId
                           : null,
                       isExpanded: true,
@@ -1098,7 +1120,9 @@ Future<void> _showNoteDialog(
                       onChanged: (value) {
                         setDialogState(() {
                           selectedTrackId = value;
-                          if (!availableModules.any((item) => item.id == selectedModuleId)) {
+                          if (!availableModules.any(
+                            (item) => item.id == selectedModuleId,
+                          )) {
                             selectedModuleId = null;
                           }
                         });
@@ -1106,9 +1130,10 @@ Future<void> _showNoteDialog(
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      initialValue: availableModules.any(
-                        (item) => item.id == selectedModuleId,
-                      )
+                      initialValue:
+                          availableModules.any(
+                            (item) => item.id == selectedModuleId,
+                          )
                           ? selectedModuleId
                           : null,
                       isExpanded: true,
@@ -1132,9 +1157,10 @@ Future<void> _showNoteDialog(
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String?>(
-                      initialValue: projectBundles.any(
-                        (item) => item.project.id == selectedProjectId,
-                      )
+                      initialValue:
+                          projectBundles.any(
+                            (item) => item.project.id == selectedProjectId,
+                          )
                           ? selectedProjectId
                           : null,
                       isExpanded: true,
@@ -1210,7 +1236,9 @@ Future<void> _showNoteDialog(
                   );
 
                   final now = DateTime.now().toUtc();
-                  await ref.read(noteActionsProvider).save(
+                  await ref
+                      .read(noteActionsProvider)
+                      .save(
                         StudyNoteEntity(
                           id: note?.id ?? uuid.v4(),
                           userId: userId,
@@ -1284,10 +1312,7 @@ StudyModuleEntity? _findModule(
   return null;
 }
 
-ProjectBundle? _findProject(
-  List<ProjectBundle> projects,
-  String? projectId,
-) {
+ProjectBundle? _findProject(List<ProjectBundle> projects, String? projectId) {
   if (projectId == null) return null;
   for (final item in projects) {
     if (item.project.id == projectId) {

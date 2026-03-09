@@ -43,8 +43,12 @@ class AuthShowcasePanel extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           Colors.black.withValues(alpha: 0.08),
-                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.16),
-                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
+                          Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.16),
+                          Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.72),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -54,26 +58,45 @@ class AuthShowcasePanel extends StatelessWidget {
                 ),
                 Positioned.fill(
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Stack(
+                      alignment: Alignment.center,
                       children: [
                         Container(
-                          width: 176,
-                          height: 176,
+                          width: 204,
+                          height: 204,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.34),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.16),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 152,
+                          height: 152,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surface.withValues(alpha: 0.30),
+                            border: Border.all(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.18),
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.22),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withValues(alpha: 0.22),
                                 blurRadius: 42,
                                 spreadRadius: 3,
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: AppLogo(size: 116),
-                          ),
+                          child: const Center(child: AppLogo(size: 98)),
                         ),
                       ],
                     ),
@@ -97,9 +120,9 @@ class AuthShowcasePanel extends StatelessWidget {
           delay: const Duration(milliseconds: 60),
           child: Text(
             title,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(height: 14),
@@ -175,10 +198,7 @@ class AuthShowcasePanel extends StatelessWidget {
                             value: 'Foco + histórico',
                           ),
                           SizedBox(height: 14),
-                          _MiniMetric(
-                            label: 'Sync',
-                            value: 'Drift + Supabase',
-                          ),
+                          _MiniMetric(label: 'Sync', value: 'Drift + Supabase'),
                           SizedBox(height: 14),
                           _MiniMetric(
                             label: 'Desktop',
@@ -241,9 +261,9 @@ class _MiniMetric extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
         ),
       ],
     );

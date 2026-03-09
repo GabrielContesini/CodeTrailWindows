@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({
@@ -17,24 +16,36 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final logo = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(size * 0.32),
+        borderRadius: BorderRadius.circular(size * 0.30),
+        border: Border.all(color: scheme.outline.withValues(alpha: 0.72)),
+        gradient: LinearGradient(
+          colors: [
+            scheme.surface.withValues(alpha: 0.94),
+            scheme.primary.withValues(alpha: 0.10),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.18),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: scheme.primary.withValues(alpha: 0.18),
+            blurRadius: size * 0.34,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(size * 0.32),
-        child: SvgPicture.asset('CodeTrail.svg', fit: BoxFit.cover),
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.12),
+        child: Image.asset(
+          'assets/design/app_icon.png',
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.high,
+        ),
       ),
     );
 
