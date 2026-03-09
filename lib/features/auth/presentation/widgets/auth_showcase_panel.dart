@@ -18,104 +18,21 @@ class AuthShowcasePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final highlights = const [
       'Trilhas por carreira com módulos, skills e progresso por etapa.',
-      'Sessões offline-first com sincronização Supabase + Drift.',
+      'Sessões offline-first com histórico e retomada do ritmo.',
       'Notas, tarefas, revisões e projetos no mesmo workspace.',
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AnimatedReveal(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: Stack(
-              children: [
-                AspectRatio(
-                  aspectRatio: 1.65,
-                  child: Image.asset(
-                    'assets/design/background.webp',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.black.withValues(alpha: 0.08),
-                          Theme.of(
-                            context,
-                          ).colorScheme.surface.withValues(alpha: 0.16),
-                          Theme.of(
-                            context,
-                          ).colorScheme.surface.withValues(alpha: 0.72),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Center(
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 204,
-                          height: 204,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.16),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 152,
-                          height: 152,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surface.withValues(alpha: 0.30),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.18),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.22),
-                                blurRadius: 42,
-                                spreadRadius: 3,
-                              ),
-                            ],
-                          ),
-                          child: const Center(child: AppLogo(size: 98)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
         const AnimatedReveal(
-          delay: Duration(milliseconds: 40),
           child: AppLogo(
             size: 72,
             showLabel: true,
             subtitle: 'Desktop workspace para evolução real em TI',
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         AnimatedReveal(
           delay: const Duration(milliseconds: 60),
           child: Text(
@@ -198,7 +115,10 @@ class AuthShowcasePanel extends StatelessWidget {
                             value: 'Foco + histórico',
                           ),
                           SizedBox(height: 14),
-                          _MiniMetric(label: 'Sync', value: 'Drift + Supabase'),
+                          _MiniMetric(
+                            label: 'Fluxo',
+                            value: 'Estudo + execução',
+                          ),
                           SizedBox(height: 14),
                           _MiniMetric(
                             label: 'Desktop',
@@ -217,8 +137,8 @@ class AuthShowcasePanel extends StatelessWidget {
                           SizedBox(width: 18),
                           Expanded(
                             child: _MiniMetric(
-                              label: 'Sync',
-                              value: 'Drift + Supabase',
+                              label: 'Fluxo',
+                              value: 'Estudo + execução',
                             ),
                           ),
                           SizedBox(width: 18),

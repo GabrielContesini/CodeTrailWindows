@@ -25,8 +25,8 @@ class AppLogo extends StatelessWidget {
         border: Border.all(color: scheme.outline.withValues(alpha: 0.72)),
         gradient: LinearGradient(
           colors: [
-            scheme.surface.withValues(alpha: 0.94),
-            scheme.primary.withValues(alpha: 0.10),
+            scheme.surface.withValues(alpha: 0.98),
+            scheme.surfaceContainerHighest.withValues(alpha: 0.92),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -40,9 +40,9 @@ class AppLogo extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(size * 0.12),
+        padding: EdgeInsets.all(size * 0.10),
         child: Image.asset(
-          'assets/design/app_icon.png',
+          'assets/design/CodeTrailMainIcon.png',
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,
         ),

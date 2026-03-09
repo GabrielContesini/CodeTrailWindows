@@ -13,7 +13,7 @@ class SeedService {
           description:
               'Pipelines, modelagem analítica, cloud data stack e governança.',
           iconKey: 'database',
-          colorHex: '#5EA1FF',
+          colorHex: '#4F8CFF',
           roadmapSummary:
               'Fundamentos de SQL, orquestração, modelagem, cloud data warehouse e observabilidade.',
           skills: [
@@ -87,7 +87,7 @@ class SeedService {
           description:
               'APIs robustas, arquitetura, testes, filas e observabilidade.',
           iconKey: 'server',
-          colorHex: '#7CFFB2',
+          colorHex: '#22D3EE',
           roadmapSummary:
               'HTTP, FastAPI/Django, bancos relacionais, filas, cache e deploy.',
           skills: [
@@ -161,7 +161,7 @@ class SeedService {
           description:
               'Laravel moderno, APIs, filas, testes e aplicações de negócio.',
           iconKey: 'code',
-          colorHex: '#FFD166',
+          colorHex: '#F59E0B',
           roadmapSummary:
               'PHP moderno, Laravel, arquitetura em camadas, filas e deploy.',
           skills: [
@@ -235,7 +235,7 @@ class SeedService {
           description:
               'Interfaces modernas, performance, componentização e testes.',
           iconKey: 'monitor',
-          colorHex: '#5ED3FF',
+          colorHex: '#22C55E',
           roadmapSummary:
               'HTML/CSS/JS, React, estado, design system e deploy front.',
           skills: [
@@ -308,7 +308,7 @@ class SeedService {
           name: 'Full Stack',
           description: 'Fluxo ponta a ponta com front, back, banco e deploy.',
           iconKey: 'layers',
-          colorHex: '#B59CFF',
+          colorHex: '#4F8CFF',
           roadmapSummary:
               'Base web, API, banco, autenticação, deploy e produto completo.',
           skills: [
@@ -382,7 +382,7 @@ class SeedService {
           description:
               'Automação, infraestrutura, containers, pipelines e observabilidade.',
           iconKey: 'cloud',
-          colorHex: '#7CFFB2',
+          colorHex: '#22D3EE',
           roadmapSummary: 'Linux, redes, Docker, CI/CD, cloud e monitoramento.',
           skills: [
             SkillSeed(
@@ -455,7 +455,7 @@ class SeedService {
           description:
               'Análise, métricas, visualização, storytelling e produto.',
           iconKey: 'chart',
-          colorHex: '#FFD166',
+          colorHex: '#F59E0B',
           roadmapSummary:
               'SQL, métricas, dashboards, estatística aplicada e storytelling.',
           skills: [

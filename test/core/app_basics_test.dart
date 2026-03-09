@@ -11,9 +11,9 @@ void main() {
     });
 
     test('defines the expected premium palette anchors', () {
-      expect(AppColors.darkBackground.toARGB32(), 0xFF041516);
-      expect(AppColors.primaryAccent.toARGB32(), 0xFF1DEBE3);
-      expect(AppColors.lightBackground.toARGB32(), 0xFFEEFDFC);
+      expect(AppColors.darkBackground.toARGB32(), 0xFF0B1220);
+      expect(AppColors.primaryAccent.toARGB32(), 0xFF4F8CFF);
+      expect(AppColors.lightBackground.toARGB32(), 0xFFF3F6FB);
     });
   });
 }

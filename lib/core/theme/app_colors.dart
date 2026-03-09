@@ -3,21 +3,22 @@ import 'package:flutter/material.dart';
 class AppColors {
   const AppColors._();
 
-  static const darkBackground = Color(0xFF041516);
-  static const darkSurface = Color(0xFF082325);
-  static const darkCard = Color(0xFF0C2D30);
-  static const darkBorder = Color(0xFF15595E);
-  static const darkTextPrimary = Color(0xFFF2FFFE);
-  static const darkTextSecondary = Color(0xFF93BDBC);
-  static const primaryAccent = Color(0xFF1DEBE3);
-  static const secondaryAccent = Color(0xFF83FFD6);
-  static const warningAccent = Color(0xFF6FE9FF);
-  static const dangerAccent = Color(0xFFFF7F90);
+  static const darkBackground = Color(0xFF0B1220);
+  static const darkSurface = Color(0xFF121A2A);
+  static const darkCard = Color(0xFF182235);
+  static const darkBorder = Color(0xFF263248);
+  static const darkTextPrimary = Color(0xFFF5F7FB);
+  static const darkTextSecondary = Color(0xFF9BA9BF);
+  static const primaryAccent = Color(0xFF4F8CFF);
+  static const secondaryAccent = Color(0xFF22D3EE);
+  static const successAccent = Color(0xFF22C55E);
+  static const warningAccent = Color(0xFFF59E0B);
+  static const dangerAccent = Color(0xFFF59E0B);
 
-  static const lightBackground = Color(0xFFEEFDFC);
+  static const lightBackground = Color(0xFFF3F6FB);
   static const lightSurface = Color(0xFFFFFFFF);
-  static const lightCard = Color(0xFFF4FFFE);
-  static const lightBorder = Color(0xFFB5E3DF);
-  static const lightTextPrimary = Color(0xFF062324);
-  static const lightTextSecondary = Color(0xFF4C6D6C);
+  static const lightCard = Color(0xFFF7FAFE);
+  static const lightBorder = Color(0xFFD8E1EE);
+  static const lightTextPrimary = Color(0xFF0B1220);
+  static const lightTextSecondary = Color(0xFF607089);
 }
