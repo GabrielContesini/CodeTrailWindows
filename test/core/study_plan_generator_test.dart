@@ -58,7 +58,7 @@ TrackBlueprint _blueprint() {
       name: 'Backend Python',
       description: 'APIs, banco e deploy.',
       iconKey: 'server',
-      colorHex: '#4F8CFF',
+      colorHex: '#005F73',
       roadmapSummary: 'Base sólida de backend',
       createdAt: now,
       updatedAt: now,

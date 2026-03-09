@@ -91,8 +91,9 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = Split-Path -Parent $projectRoot
 
 $sourceCandidates = @(
-  (Join-Path $repositoryRoot "CodeTrailIconPack\alternatives\light\icon-full-dark.png"),
-  (Join-Path $repositoryRoot "CodeTrailIconPack\play-store\icon-512.png")
+  (Join-Path $repositoryRoot "IconKitchen-Output\web\icon-512.png"),
+  (Join-Path $repositoryRoot "IconKitchen-Output\android\play_store_512.png"),
+  (Join-Path $projectRoot "assets\design\CodeTrailMainIcon.png")
 )
 
 $sourcePngPath = $sourceCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
@@ -105,8 +106,8 @@ if ($sourcePngPath) {
 }
 
 if (Test-Path $outputIcoPath) {
-  Write-Host "CodeTrailIconPack nao encontrado. Usando o app_icon.ico versionado em: $outputIcoPath"
+  Write-Host "IconKitchen-Output nao encontrado. Usando o app_icon.ico versionado em: $outputIcoPath"
   exit 0
 }
 
-throw "Nao foi encontrado um PNG do CodeTrailIconPack e tambem nao existe um app_icon.ico versionado para fallback."
+throw "Nao foi encontrado um PNG do IconKitchen-Output e tambem nao existe um app_icon.ico versionado para fallback."

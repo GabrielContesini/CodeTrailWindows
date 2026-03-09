@@ -1007,14 +1007,14 @@ class _NotebookPaperPainter extends CustomPainter {
 }
 
 Color _folderAccent(int index, ColorScheme colorScheme) {
-  const palette = <Color>[
-    Color(0xFF4F8CFF),
-    Color(0xFF22D3EE),
-    Color(0xFF22C55E),
-    Color(0xFFF59E0B),
-    Color(0xFF7AA8FF),
-    Color(0xFF58E4F8),
-  ];
+    const palette = <Color>[
+      Color(0xFF005F73),
+      Color(0xFF2EC5FF),
+      Color(0xFF35D39A),
+      Color(0xFFFFC857),
+      Color(0xFF0A3F4A),
+      Color(0xFF69D8FF),
+    ];
   return palette[index % palette.length];
 }
 
