@@ -90,6 +90,7 @@ function Write-IconFile {
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $repositoryRoot = Split-Path -Parent $projectRoot
 
+$sourceIcoPath = Join-Path $repositoryRoot "IconKitchen-Output\web\favicon.ico"
 $sourceCandidates = @(
   (Join-Path $repositoryRoot "IconKitchen-Output\web\icon-512.png"),
   (Join-Path $repositoryRoot "IconKitchen-Output\android\play_store_512.png"),
@@ -98,6 +99,12 @@ $sourceCandidates = @(
 
 $sourcePngPath = $sourceCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
 $outputIcoPath = Join-Path $projectRoot "windows\runner\resources\app_icon.ico"
+
+if (Test-Path $sourceIcoPath) {
+  Copy-Item $sourceIcoPath $outputIcoPath -Force
+  Write-Host "Icone oficial copiado do IconKitchen-Output para: $outputIcoPath"
+  exit 0
+}
 
 if ($sourcePngPath) {
   Write-IconFile -SourcePngPath $sourcePngPath -OutputIcoPath $outputIcoPath

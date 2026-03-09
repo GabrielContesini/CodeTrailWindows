@@ -2,7 +2,7 @@ name: code_trail_windows
 description: "CodeTrail for Windows desktop, based on the stable Android tablet app."
 publish_to: 'none'
 
-version: 1.1.18+21
+version: 1.1.19+22
 
 environment:
   sdk: ^3.11.1

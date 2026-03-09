@@ -601,15 +601,23 @@ class _ContextPill extends StatelessWidget {
 }
 
 class _StatChip extends StatelessWidget {
-  const _StatChip({required this.label, required this.value});
+  const _StatChip({
+    required this.label,
+    required this.value,
+    this.dense = false,
+  });
 
   final String label;
   final String value;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 10 : 12,
+        vertical: dense ? 7 : 8,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.colorScheme.outline),
@@ -617,7 +625,10 @@ class _StatChip extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: context.textTheme.labelLarge?.copyWith(
+        style: (dense
+                ? context.textTheme.labelMedium
+                : context.textTheme.labelLarge)
+            ?.copyWith(
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -791,7 +802,7 @@ class _NotebookShelfCard extends StatelessWidget {
               : null,
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 10,
@@ -826,15 +837,27 @@ class _NotebookShelfCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _StatChip(
+                        label: 'Páginas',
+                        value: '$noteCount',
+                        dense: true,
+                      ),
+                      if (!compact)
+                        _StatChip(
+                          label: '7 dias',
+                          value: '$recentCount',
+                          dense: true,
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            _StatChip(label: 'Páginas', value: '$noteCount'),
-            if (!compact) ...[
-              const SizedBox(width: 8),
-              _StatChip(label: '7 dias', value: '$recentCount'),
-            ],
           ],
         ),
       ),
