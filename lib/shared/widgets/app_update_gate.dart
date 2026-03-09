@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../../features/auth/application/auth_controller.dart';
 import '../../features/settings/application/app_update_controller.dart';
 import '../extensions/context_extensions.dart';
 import '../models/app_update_models.dart';
@@ -20,17 +19,12 @@ class AppUpdateGate extends ConsumerStatefulWidget {
 
 class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
   bool _dialogOpen = false;
-  bool _requestedForSession = false;
-  late final ProviderSubscription<AsyncValue<dynamic>> _authSubscription;
+  bool _requestedUpdateCheck = false;
   late final ProviderSubscription<AsyncValue<AppUpdateState>> _updateSubscription;
 
   @override
   void initState() {
     super.initState();
-    _authSubscription = ref.listenManual(
-      authSessionProvider,
-      _handleSessionChange,
-    );
     _updateSubscription = ref.listenManual(
       appUpdateControllerProvider,
       _handleUpdateChange,
@@ -42,23 +36,8 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
 
   @override
   void dispose() {
-    _authSubscription.close();
     _updateSubscription.close();
     super.dispose();
-  }
-
-  void _handleSessionChange(
-    AsyncValue<dynamic>? previous,
-    AsyncValue<dynamic> next,
-  ) {
-    final session = next.asData?.value;
-    if (session == null) {
-      _requestedForSession = false;
-      _dialogOpen = false;
-      return;
-    }
-
-    _requestUpdateCheckIfNeeded();
   }
 
   void _handleUpdateChange(
@@ -67,9 +46,6 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
   ) {
     final snapshot = next.asData?.value;
     if (snapshot == null || !snapshot.shouldPrompt || _dialogOpen) return;
-
-    final session = ref.read(authSessionProvider).asData?.value;
-    if (session == null) return;
 
     _dialogOpen = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -157,17 +133,14 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = ref.watch(currentUserIdProvider);
     final updateState = ref.watch(appUpdateControllerProvider).asData?.value;
-    final session = ref.watch(authSessionProvider).asData?.value;
     final visibleUpdate = updateState?.availableUpdate;
-    if (currentUserId != null && !_requestedForSession) {
+    if (!_requestedUpdateCheck) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _requestUpdateCheckIfNeeded();
       });
     }
     final showBanner =
-        session != null &&
         updateState != null &&
         visibleUpdate != null &&
         visibleUpdate.tagName != updateState.dismissedVersion;
@@ -213,10 +186,8 @@ class _AppUpdateGateState extends ConsumerState<AppUpdateGate> {
   }
 
   void _requestUpdateCheckIfNeeded() {
-    if (!mounted || _requestedForSession) return;
-    final userId = ref.read(currentUserIdProvider);
-    if (userId == null) return;
-    _requestedForSession = true;
+    if (!mounted || _requestedUpdateCheck) return;
+    _requestedUpdateCheck = true;
     unawaited(ref.read(appUpdateControllerProvider.notifier).checkForUpdates());
   }
 }
