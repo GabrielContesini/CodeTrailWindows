@@ -25,14 +25,67 @@ class AuthShowcasePanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        AnimatedReveal(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.65,
+                  child: Image.asset(
+                    'assets/design/background.webp',
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withValues(alpha: 0.08),
+                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.16),
+                          Theme.of(context).colorScheme.surface.withValues(alpha: 0.72),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/design/logo_animated.gif',
+                          width: 168,
+                          height: 168,
+                        ),
+                        const SizedBox(height: 14),
+                        Image.asset(
+                          'assets/design/logo.png',
+                          width: 78,
+                          height: 78,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
         const AnimatedReveal(
+          delay: Duration(milliseconds: 40),
           child: AppLogo(
-            size: 76,
+            size: 72,
             showLabel: true,
             subtitle: 'Desktop workspace para evolução real em TI',
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
         AnimatedReveal(
           delay: const Duration(milliseconds: 60),
           child: Text(

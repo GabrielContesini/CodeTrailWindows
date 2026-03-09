@@ -2,7 +2,7 @@ name: code_trail_windows
 description: "CodeTrail for Windows desktop, based on the stable Android tablet app."
 publish_to: 'none'
 
-version: 1.1.10+13
+version: 1.1.11+14
 
 environment:
   sdk: ^3.11.1
@@ -53,3 +53,6 @@ flutter:
   uses-material-design: true
   assets:
     - CodeTrail.svg
+    - assets/design/background.webp
+    - assets/design/logo.png
+    - assets/design/logo_animated.gif

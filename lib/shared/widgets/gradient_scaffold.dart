@@ -15,13 +15,20 @@ class GradientScaffold extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/design/background.webp',
+              fit: BoxFit.cover,
+              opacity: const AlwaysStoppedAnimation(0.34),
+            ),
+          ),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Theme.of(context).scaffoldBackgroundColor,
+                  Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.96),
                   scheme.surface.withValues(alpha: isDark ? 0.92 : 0.96),
-                  Theme.of(context).scaffoldBackgroundColor,
+                  Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.98),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
