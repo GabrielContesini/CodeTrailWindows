@@ -12,6 +12,11 @@ permissions:
 jobs:
   build-release:
     runs-on: windows-latest
+    env:
+      COMMAND_CENTER_URL: ${{ vars.COMMAND_CENTER_URL }}
+      COMMAND_CENTER_INGEST_TOKEN: ${{ secrets.COMMAND_CENTER_INGEST_TOKEN }}
+      APP_ENVIRONMENT: production
+      RELEASE_CHANNEL: stable
     steps:
       - name: Checkout
         uses: actions/checkout@v4

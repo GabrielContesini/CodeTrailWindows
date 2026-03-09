@@ -16,6 +16,7 @@ import 'seed_service.dart';
 import 'session_preferences_service.dart';
 import 'startup_coordinator.dart';
 import 'sync_service.dart';
+import 'telemetry_heartbeat_service.dart';
 import 'tutorial_service.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -67,6 +68,16 @@ final syncServiceProvider = Provider<SyncService>((ref) {
     database: ref.watch(appDatabaseProvider),
     remoteDataSource: ref.watch(remoteDataSourceProvider),
     connectivityService: ref.watch(connectivityProvider),
+  );
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+final telemetryHeartbeatServiceProvider = Provider<TelemetryHeartbeatService>((ref) {
+  final service = TelemetryHeartbeatService(
+    database: ref.watch(appDatabaseProvider),
+    connectivityService: ref.watch(connectivityProvider),
+    secureStorage: ref.watch(secureStorageProvider),
   );
   ref.onDispose(service.dispose);
   return service;

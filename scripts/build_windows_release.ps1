@@ -84,28 +84,46 @@ function Get-UniqueArtifactBasePath {
 }
 
 function Resolve-DartDefineArgument {
+  $payload = @{}
+
   $candidateFiles = @(
+    (Join-Path $projectRoot "env\supabase.github.json"),
     (Join-Path $projectRoot "env\supabase.local.json"),
-    (Join-Path $projectRoot "env\supabase.github.json")
+    (Join-Path $projectRoot "env\command_center.local.json")
   )
 
   foreach ($candidateFile in $candidateFiles) {
-    if (Test-Path $candidateFile) {
-      return "--dart-define-from-file=$candidateFile"
+    if (-not (Test-Path $candidateFile)) {
+      continue
+    }
+
+    $data = Get-Content $candidateFile -Raw | ConvertFrom-Json -AsHashtable
+    foreach ($entry in $data.GetEnumerator()) {
+      $payload[$entry.Key] = $entry.Value
     }
   }
 
-  if ($env:SUPABASE_URL -and $env:SUPABASE_ANON_KEY) {
-    $ciEnvFile = Join-Path $projectRoot "env\supabase.ci.json"
-    $payload = @{
-      SUPABASE_URL = $env:SUPABASE_URL
-      SUPABASE_ANON_KEY = $env:SUPABASE_ANON_KEY
-    } | ConvertTo-Json -Compress
-    Set-Content -Path $ciEnvFile -Value $payload -Encoding ASCII
-    return "--dart-define-from-file=$ciEnvFile"
+  foreach ($name in @(
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "COMMAND_CENTER_URL",
+    "COMMAND_CENTER_INGEST_TOKEN",
+    "APP_ENVIRONMENT",
+    "RELEASE_CHANNEL"
+  )) {
+    $value = [Environment]::GetEnvironmentVariable($name)
+    if ($value) {
+      $payload[$name] = $value
+    }
   }
 
-  return $null
+  if ($payload.Count -eq 0) {
+    return $null
+  }
+
+  $generatedEnvFile = Join-Path $projectRoot "env\runtime.generated.json"
+  Set-Content -Path $generatedEnvFile -Value ($payload | ConvertTo-Json -Compress) -Encoding ASCII
+  return "--dart-define-from-file=$generatedEnvFile"
 }
 
 Push-Location $projectRoot
@@ -151,8 +169,8 @@ try {
   Write-Host "Zip gerado em: $artifactBase.zip"
 }
 finally {
-  if (Test-Path ".\env\supabase.ci.json") {
-    Remove-Item ".\env\supabase.ci.json" -Force
+  if (Test-Path ".\env\runtime.generated.json") {
+    Remove-Item ".\env\runtime.generated.json" -Force
   }
   Pop-Location
 }

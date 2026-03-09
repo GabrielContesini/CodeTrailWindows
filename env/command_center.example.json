@@ -1,0 +1,6 @@
+{
+  "COMMAND_CENTER_URL": "https://seu-command-center.vercel.app",
+  "COMMAND_CENTER_INGEST_TOKEN": "SEU_TOKEN_DE_INGEST",
+  "APP_ENVIRONMENT": "production",
+  "RELEASE_CHANNEL": "stable"
+}

@@ -26,6 +26,7 @@ Projeto desktop separado do CodeTrail, baseado na versão estável Android e pre
 2. Flutter estável
 3. Windows `Developer Mode` habilitado
 4. `env/supabase.local.json` configurado opcionalmente para sobrescrever o ambiente publico de release
+5. `env/command_center.local.json` opcional se voce quiser ativar heartbeat local para o Command Center
 
 Para habilitar `Developer Mode`:
 
@@ -38,6 +39,15 @@ start ms-settings:developers
 ```powershell
 .\scripts\run_windows.ps1
 ```
+
+Se quiser ligar heartbeat real para o Command Center durante o desenvolvimento:
+
+1. copie [env/command_center.example.json](./env/command_center.example.json) para `env/command_center.local.json`
+2. preencha:
+   - `COMMAND_CENTER_URL`
+   - `COMMAND_CENTER_INGEST_TOKEN`
+   - opcionalmente `APP_ENVIRONMENT`
+   - opcionalmente `RELEASE_CHANNEL`
 
 ## Gerar bundle Windows
 
@@ -87,6 +97,29 @@ Observações:
 - para checar manualmente, use `Configurações > Atualizações`
 - builds de release no GitHub Actions usam `env/supabase.github.json`, então o ciclo automático não depende de secrets privados para a chave publica do cliente
 
+## Heartbeat real para o Command Center
+
+O app Windows agora consegue enviar heartbeat real para o endpoint:
+
+- `POST /api/telemetry/heartbeat`
+
+Quando `COMMAND_CENTER_URL` e `COMMAND_CENTER_INGEST_TOKEN` estiverem configurados, o cliente:
+
+1. gera um `instanceId` persistente
+2. envia heartbeat ao abrir
+3. envia heartbeat quando a sessao muda
+4. envia heartbeat quando a conectividade volta
+5. continua enviando heartbeat periodico em background
+
+O payload inclui:
+
+- usuario autenticado atual, se existir
+- versao instalada
+- backlog e erros da fila local de sync
+- hostname da maquina
+- ambiente e canal de release
+- uptime do app
+
 ## GitHub Actions para release
 
 O workflow de release do Windows já consegue gerar e publicar o instalador automaticamente sem secrets extras, porque usa o arquivo versionado `env/supabase.github.json` com as chaves publicas do cliente.
@@ -100,9 +133,15 @@ Fluxo:
 
 Se quiser sobrescrever o ambiente no seu PC local, mantenha `env/supabase.local.json`. Os scripts preferem:
 
-1. `env/supabase.local.json`
-2. `env/supabase.github.json`
-3. variaveis de ambiente do processo atual
+1. `env/supabase.github.json`
+2. `env/supabase.local.json`
+3. `env/command_center.local.json`
+4. variaveis de ambiente do processo atual
+
+Para o pipeline de release publicar builds com heartbeat ativo, configure no repositório `CodeTrailWindows`:
+
+- `Repository variable`: `COMMAND_CENTER_URL`
+- `Repository secret`: `COMMAND_CENTER_INGEST_TOKEN`
 
 ## Observação
 

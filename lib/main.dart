@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/router/app_router.dart';
 import 'core/services/bootstrap_service.dart';
@@ -42,28 +43,48 @@ class CodeTrailApp extends ConsumerStatefulWidget {
 class _CodeTrailAppState extends ConsumerState<CodeTrailApp> {
   StreamSubscription<bool>? _connectivitySubscription;
   StreamSubscription<SyncQueueDiagnostics>? _syncDiagnosticsSubscription;
+  StreamSubscription<Session?>? _authSessionSubscription;
   Timer? _retryTimer;
 
   @override
   void initState() {
     super.initState();
+    unawaited(
+      ref
+          .read(telemetryHeartbeatServiceProvider)
+          .start(userId: ref.read(currentUserIdProvider)),
+    );
     _connectivitySubscription = ref
         .read(connectivityProvider)
         .connectivityChanges()
         .listen((connected) {
           if (!connected) return;
           unawaited(_triggerSync());
+          unawaited(
+            ref.read(telemetryHeartbeatServiceProvider).sendNow(force: true),
+          );
         });
     _syncDiagnosticsSubscription = ref
         .read(appDatabaseProvider)
         .watchSyncQueueDiagnostics()
         .listen(_handleSyncDiagnostics);
+    _authSessionSubscription = ref
+        .read(authRepositoryProvider)
+        .sessionChanges()
+        .listen(
+          (session) => unawaited(
+            ref
+                .read(telemetryHeartbeatServiceProvider)
+                .updateUser(session?.user.id),
+          ),
+        );
   }
 
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
     _syncDiagnosticsSubscription?.cancel();
+    _authSessionSubscription?.cancel();
     _retryTimer?.cancel();
     super.dispose();
   }
