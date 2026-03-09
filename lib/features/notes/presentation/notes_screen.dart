@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -23,6 +24,7 @@ class NotesScreen extends ConsumerStatefulWidget {
 class _NotesScreenState extends ConsumerState<NotesScreen> {
   String _selectedFolder = 'Todas';
   String? _selectedNoteId;
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     return PageFrame(
       title: 'Notas',
       subtitle:
-          'Anotações internas do CodeTrail organizadas por pasta, prontas para consulta durante os estudos.',
+          'Capture resumos, snippets, checklists e decisões sem perder o contexto da trilha.',
       tutorial: const PageTutorialData(
         id: 'notes',
         title: 'Como usar notas',
@@ -39,7 +41,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             'Use esta área para centralizar resumos, snippets, comandos e checkpoints de estudo.',
         steps: [
           'Crie pastas por assunto, stack ou projeto.',
-          'Mantenha uma nota por conceito importante ou bloqueio real.',
+          'Use templates para abrir notas mais rápido durante a sessão.',
           'Revise as notas junto das sessões e revisões para consolidar a base.',
         ],
       ),
@@ -49,6 +51,50 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
           icon: const Icon(Icons.note_add_outlined),
           label: const Text('Nova nota'),
         ),
+        PopupMenuButton<_NoteTemplate>(
+          onSelected: (template) => _showNoteDialog(
+            context,
+            ref,
+            initialFolder: _selectedFolder == 'Todas' ? 'Geral' : _selectedFolder,
+            initialTitle: template.defaultTitle,
+            initialContent: template.templateContent,
+          ),
+          itemBuilder: (context) => _NoteTemplate.values
+              .map(
+                (template) => PopupMenuItem<_NoteTemplate>(
+                  value: template,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(template.label),
+                      Text(
+                        template.description,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.30),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.auto_awesome_outlined, size: 18),
+                SizedBox(width: 8),
+                Text('Templates'),
+              ],
+            ),
+          ),
+        ),
       ],
       child: AsyncValueView(
         value: notesAsync,
@@ -57,9 +103,26 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
             ..removeWhere((item) => item.trim().isEmpty);
           final sortedFolders = folders.toList()..sort();
           final folderList = ['Todas', ...sortedFolders];
-          final filteredNotes = _selectedFolder == 'Todas'
+          final normalizedQuery = _searchQuery.trim().toLowerCase();
+          final folderFiltered = _selectedFolder == 'Todas'
               ? notes
               : notes.where((note) => note.folderName == _selectedFolder).toList();
+          final filteredNotes = normalizedQuery.isEmpty
+              ? folderFiltered
+              : folderFiltered.where((note) {
+                  final haystack =
+                      '${note.title} ${note.content} ${note.folderName}'
+                          .toLowerCase();
+                  return haystack.contains(normalizedQuery);
+                }).toList();
+          final recentNotesCount = notes
+              .where(
+                (note) =>
+                    note.updatedAt.isAfter(
+                      DateTime.now().toUtc().subtract(const Duration(days: 7)),
+                    ),
+              )
+              .length;
 
           if (!folderList.contains(_selectedFolder)) {
             _selectedFolder = 'Todas';
@@ -101,6 +164,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 selectedFolder: _selectedFolder,
                 notes: filteredNotes,
                 selectedNoteId: _selectedNoteId,
+                searchQuery: _searchQuery,
+                totalNotes: notes.length,
+                folderCount: sortedFolders.length,
+                recentNotesCount: recentNotesCount,
+                onSearchChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                    _selectedNoteId = null;
+                  });
+                },
                 onSelectFolder: (folder) {
                   setState(() {
                     _selectedFolder = folder;
@@ -139,7 +212,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               if (!wide) {
                 return Column(
                   children: [
-                    SizedBox(height: 290, child: listPane),
+                    SizedBox(height: 360, child: listPane),
                     const SizedBox(height: 12),
                     Expanded(child: detailPane),
                   ],
@@ -148,7 +221,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
               return Row(
                 children: [
-                  SizedBox(width: 360, child: listPane),
+                  SizedBox(width: 390, child: listPane),
                   const SizedBox(width: 14),
                   Expanded(child: detailPane),
                 ],
@@ -167,6 +240,11 @@ class _NotesListPane extends StatelessWidget {
     required this.selectedFolder,
     required this.notes,
     required this.selectedNoteId,
+    required this.searchQuery,
+    required this.totalNotes,
+    required this.folderCount,
+    required this.recentNotesCount,
+    required this.onSearchChanged,
     required this.onSelectFolder,
     required this.onSelectNote,
     required this.onCreateNote,
@@ -176,6 +254,11 @@ class _NotesListPane extends StatelessWidget {
   final String selectedFolder;
   final List<StudyNoteEntity> notes;
   final String? selectedNoteId;
+  final String searchQuery;
+  final int totalNotes;
+  final int folderCount;
+  final int recentNotesCount;
+  final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSelectFolder;
   final ValueChanged<String> onSelectNote;
   final VoidCallback onCreateNote;
@@ -190,7 +273,7 @@ class _NotesListPane extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'Pastas e notas',
+                  'Workspace de notas',
                   style: context.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -204,6 +287,30 @@ class _NotesListPane extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _StatChip(label: 'Notas', value: '$totalNotes'),
+              _StatChip(label: 'Pastas', value: '$folderCount'),
+              _StatChip(label: '7 dias', value: '$recentNotesCount'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            onChanged: onSearchChanged,
+            decoration: InputDecoration(
+              labelText: 'Buscar por título, pasta ou conteúdo',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () => onSearchChanged(''),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -224,7 +331,7 @@ class _NotesListPane extends StatelessWidget {
           Expanded(
             child: notes.isEmpty
                 ? const Center(
-                    child: Text('Nenhuma nota nesta pasta.'),
+                    child: Text('Nenhuma nota encontrada com esse filtro.'),
                   )
                 : ListView.separated(
                     itemCount: notes.length,
@@ -268,6 +375,14 @@ class _NotesListPane extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
+                                note.folderName,
+                                style: context.textTheme.labelSmall?.copyWith(
+                                  color: context.colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
                                 note.content,
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
@@ -307,6 +422,9 @@ class _NotesDetailPane extends StatelessWidget {
       );
     }
 
+    final wordCount = _countWords(note!.content);
+    final readingMinutes = _estimateReadingMinutes(wordCount);
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,10 +448,22 @@ class _NotesDetailPane extends StatelessWidget {
                   ),
                 ),
               ),
+              _StatChip(label: 'Palavras', value: '$wordCount'),
+              _StatChip(label: 'Leitura', value: '$readingMinutes min'),
               FilledButton.tonalIcon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('Editar'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: note!.content));
+                  if (context.mounted) {
+                    context.showAppSnackBar('Conteúdo copiado.');
+                  }
+                },
+                icon: const Icon(Icons.content_copy_rounded),
+                label: const Text('Copiar'),
               ),
               if (onDelete != null)
                 IconButton(
@@ -381,11 +511,38 @@ class _NotesDetailPane extends StatelessWidget {
   }
 }
 
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.colorScheme.outline),
+        color: context.colorScheme.surface.withValues(alpha: 0.20),
+      ),
+      child: Text(
+        '$label: $value',
+        style: context.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 Future<void> _showNoteDialog(
   BuildContext context,
   WidgetRef ref, {
   StudyNoteEntity? note,
   String initialFolder = 'Geral',
+  String? initialTitle,
+  String? initialContent,
 }) async {
   final userId = ref.read(currentUserIdProvider);
   if (userId == null) return;
@@ -393,8 +550,12 @@ Future<void> _showNoteDialog(
   final folderController = TextEditingController(
     text: note?.folderName ?? initialFolder,
   );
-  final titleController = TextEditingController(text: note?.title ?? '');
-  final contentController = TextEditingController(text: note?.content ?? '');
+  final titleController = TextEditingController(
+    text: note?.title ?? initialTitle ?? '',
+  );
+  final contentController = TextEditingController(
+    text: note?.content ?? initialContent ?? '',
+  );
   final uuid = const Uuid();
 
   await showDialog<void>(
@@ -480,6 +641,19 @@ Future<void> _showNoteDialog(
   );
 }
 
+int _countWords(String content) {
+  return content
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .length;
+}
+
+int _estimateReadingMinutes(int wordCount) {
+  if (wordCount == 0) return 0;
+  return (wordCount / 180).ceil();
+}
+
 String _formatDateTime(DateTime value) {
   final local = value.toLocal();
   final day = local.day.toString().padLeft(2, '0');
@@ -487,4 +661,54 @@ String _formatDateTime(DateTime value) {
   final hour = local.hour.toString().padLeft(2, '0');
   final minute = local.minute.toString().padLeft(2, '0');
   return '$day/$month/${local.year} • $hour:$minute';
+}
+
+enum _NoteTemplate {
+  summary,
+  checklist,
+  snippet;
+
+  String get label {
+    switch (this) {
+      case _NoteTemplate.summary:
+        return 'Resumo';
+      case _NoteTemplate.checklist:
+        return 'Checklist';
+      case _NoteTemplate.snippet:
+        return 'Snippet';
+    }
+  }
+
+  String get description {
+    switch (this) {
+      case _NoteTemplate.summary:
+        return 'Resumo rápido de um conceito, aula ou módulo.';
+      case _NoteTemplate.checklist:
+        return 'Passos objetivos para fechar uma tarefa ou revisão.';
+      case _NoteTemplate.snippet:
+        return 'Comando, query, trecho de código ou referência prática.';
+    }
+  }
+
+  String get defaultTitle {
+    switch (this) {
+      case _NoteTemplate.summary:
+        return 'Resumo de estudo';
+      case _NoteTemplate.checklist:
+        return 'Checklist de execução';
+      case _NoteTemplate.snippet:
+        return 'Snippet útil';
+    }
+  }
+
+  String get templateContent {
+    switch (this) {
+      case _NoteTemplate.summary:
+        return 'Contexto:\n\nPontos-chave:\n- \n- \n- \n\nO que revisar depois:\n- ';
+      case _NoteTemplate.checklist:
+        return 'Objetivo:\n\nChecklist:\n- [ ]\n- [ ]\n- [ ]\n\nBloqueios:\n- ';
+      case _NoteTemplate.snippet:
+        return 'Uso:\n\nCódigo / comando:\n\n```txt\n\n```\n\nObservações:\n- ';
+    }
+  }
 }

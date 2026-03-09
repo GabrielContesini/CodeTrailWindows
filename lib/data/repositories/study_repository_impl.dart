@@ -240,8 +240,8 @@ class StudyRepositoryImpl implements StudyRepository {
   @override
   Future<void> completeOnboarding(OnboardingInput input) async {
     final now = DateTime.now().toUtc();
-    final plan = StudyPlanGenerator.buildSummary(input);
-
+    final blueprint = await getTrack(input.userId, input.trackId);
+    final plan = StudyPlanGenerator.buildSummary(input, blueprint: blueprint);
     final profile = ProfileEntity(
       id: input.userId,
       fullName: input.name,
@@ -267,8 +267,6 @@ class StudyRepositoryImpl implements StudyRepository {
       createdAt: now,
       updatedAt: now,
     );
-
-    final blueprint = await getTrack(input.userId, input.trackId);
     final progressItems =
         blueprint?.skills
             .map(

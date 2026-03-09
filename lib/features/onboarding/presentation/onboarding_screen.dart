@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/services/study_plan_generator.dart';
 import '../../../shared/models/app_enums.dart';
 import '../../../shared/models/app_view_models.dart';
 import '../../../shared/widgets/app_card.dart';
@@ -54,6 +55,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           loadingMessage: 'Preparando trilhas iniciais...',
           data: (tracks) {
             _trackId ??= tracks.isNotEmpty ? tracks.first.track.id : null;
+            final selectedTrack = tracks.firstWhere(
+              (item) => item.track.id == _trackId,
+              orElse: () => tracks.first,
+            );
+            final preview = StudyPlanGenerator.buildPreview(
+              OnboardingInput(
+                userId: userId ?? 'preview-user',
+                name: _nameController.text.trim().isEmpty
+                    ? 'Seu nome'
+                    : _nameController.text.trim(),
+                objective: _goalController.text.trim().isEmpty
+                    ? 'Entrar em uma rotina de estudo consistente'
+                    : _goalController.text.trim(),
+                desiredArea: _areaController.text.trim().isEmpty
+                    ? 'Tecnologia'
+                    : _areaController.text.trim(),
+                trackId: selectedTrack.track.id,
+                selectedTrackName: selectedTrack.track.name,
+                currentLevel: _level,
+                hoursPerDay: int.tryParse(_hoursController.text) ?? 2,
+                daysPerWeek: int.tryParse(_daysController.text) ?? 5,
+                deadline: _deadline,
+                focusType: _focus,
+              ),
+              blueprint: selectedTrack,
+            );
 
             return Padding(
               padding: const EdgeInsets.all(20),
@@ -73,6 +100,68 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           Text(
                             'Defina objetivo, trilha, ritmo e prazo. O app cria a base do seu workspace.',
                             style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primary.withValues(alpha: 0.10),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  preview.headline,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    _PreviewChip(
+                                      label: 'Ritmo',
+                                      value: preview.confidenceLabel,
+                                    ),
+                                    _PreviewChip(
+                                      label: 'Semana',
+                                      value: '${preview.weeklyHours}h',
+                                    ),
+                                    _PreviewChip(
+                                      label: 'Horizonte',
+                                      value: '${preview.horizonWeeks} sem',
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                ...preview.milestones.take(2).map(
+                                  (item) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Padding(
+                                          padding: EdgeInsets.only(top: 4),
+                                          child: Icon(
+                                            Icons.check_circle_outline_rounded,
+                                            size: 18,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(child: Text(item)),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 24),
                           Expanded(
@@ -153,6 +242,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Nome',
                               ),
+                              onChanged: (_) => setState(() {}),
                               validator: (value) =>
                                   (value == null || value.isEmpty)
                                   ? 'Informe o nome'
@@ -164,6 +254,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Objetivo principal',
                               ),
+                              onChanged: (_) => setState(() {}),
                               validator: (value) =>
                                   (value == null || value.isEmpty)
                                   ? 'Informe o objetivo'
@@ -175,6 +266,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Área desejada',
                               ),
+                              onChanged: (_) => setState(() {}),
                             ),
                             const SizedBox(height: 16),
                             DropdownButtonFormField<SkillLevel>(
@@ -220,6 +312,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     decoration: const InputDecoration(
                                       labelText: 'Horas por dia',
                                     ),
+                                    onChanged: (_) => setState(() {}),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -230,6 +323,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                     decoration: const InputDecoration(
                                       labelText: 'Dias por semana',
                                     ),
+                                    onChanged: (_) => setState(() {}),
                                   ),
                                 ),
                               ],
@@ -324,6 +418,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _PreviewChip extends StatelessWidget {
+  const _PreviewChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
+      ),
+      child: Text(
+        '$label: $value',
+        style: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
     );
   }

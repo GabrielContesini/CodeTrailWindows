@@ -21,6 +21,11 @@ final analyticsSummaryProvider = StreamProvider<AnalyticsSummary>((ref) {
         completedReviews: 0,
         completedProjects: 0,
         consistencyDays: 0,
+        currentWeekHours: 0,
+        previousWeekHours: 0,
+        averageSessionMinutes: 0,
+        averageProductivityScore: 0,
+        focusBalancePercent: 0,
       ),
     );
   }
@@ -39,14 +44,22 @@ final analyticsSummaryProvider = StreamProvider<AnalyticsSummary>((ref) {
       List<ProjectBundle> projects,
     ) {
       final now = DateTime.now();
+      final startOfCurrentWeek = _startOfWeek(now);
+      final startOfPreviousWeek = startOfCurrentWeek.subtract(
+        const Duration(days: 7),
+      );
       final dayBuckets = <String, double>{};
       final weekBuckets = <String, double>{};
       final byType = <SessionType, double>{};
       final bySkill = <String, double>{};
+      var totalMinutes = 0;
+      var totalProductivityScore = 0;
 
       for (final session in sessions) {
         final dayKey = DateFormat('dd/MM').format(session.startTime);
         final weekKey = 'S${weekOfYear(session.startTime)}';
+        totalMinutes += session.durationMinutes;
+        totalProductivityScore += session.productivityScore;
         dayBuckets.update(
           dayKey,
           (value) => value + session.durationMinutes / 60,
@@ -70,6 +83,45 @@ final analyticsSummaryProvider = StreamProvider<AnalyticsSummary>((ref) {
           );
         }
       }
+
+      final currentWeekHours = sessions
+          .where((session) => !session.startTime.isBefore(startOfCurrentWeek))
+          .fold<double>(
+            0,
+            (sum, session) => sum + session.durationMinutes / 60,
+          );
+      final previousWeekHours = sessions
+          .where(
+            (session) =>
+                !session.startTime.isBefore(startOfPreviousWeek) &&
+                session.startTime.isBefore(startOfCurrentWeek),
+          )
+          .fold<double>(
+            0,
+            (sum, session) => sum + session.durationMinutes / 60,
+          );
+      final averageSessionMinutes = sessions.isEmpty
+          ? 0.0
+          : totalMinutes / sessions.length;
+      final averageProductivityScore = sessions.isEmpty
+          ? 0.0
+          : totalProductivityScore / sessions.length;
+      final handsOnHours =
+          (byType[SessionType.practice] ?? 0) +
+          (byType[SessionType.project] ?? 0) +
+          (byType[SessionType.exercises] ?? 0);
+      final totalHours = byType.values.fold<double>(0, (sum, value) => sum + value);
+      final focusBalancePercent = totalHours == 0
+          ? 0.0
+          : (handsOnHours / totalHours) * 100;
+      SessionType? dominantStudyType;
+      double dominantStudyHours = -1;
+      byType.forEach((type, hours) {
+        if (hours > dominantStudyHours) {
+          dominantStudyHours = hours;
+          dominantStudyType = type;
+        }
+      });
 
       final taskCompletionRate = tasks.isEmpty
           ? 0.0
@@ -111,10 +163,21 @@ final analyticsSummaryProvider = StreamProvider<AnalyticsSummary>((ref) {
         completedReviews: completedReviews,
         completedProjects: completedProjects,
         consistencyDays: consistencyDays,
+        currentWeekHours: currentWeekHours,
+        previousWeekHours: previousWeekHours,
+        averageSessionMinutes: averageSessionMinutes,
+        averageProductivityScore: averageProductivityScore,
+        focusBalancePercent: focusBalancePercent,
+        dominantStudyType: dominantStudyType,
       );
     },
   );
 });
+
+DateTime _startOfWeek(DateTime value) {
+  final local = DateTime(value.year, value.month, value.day);
+  return local.subtract(Duration(days: local.weekday - 1));
+}
 
 int weekOfYear(DateTime date) {
   final startOfYear = DateTime(date.year, 1, 1);

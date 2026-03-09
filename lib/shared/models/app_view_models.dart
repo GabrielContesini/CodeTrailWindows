@@ -177,6 +177,12 @@ class AnalyticsSummary {
     required this.completedReviews,
     required this.completedProjects,
     required this.consistencyDays,
+    required this.currentWeekHours,
+    required this.previousWeekHours,
+    required this.averageSessionMinutes,
+    required this.averageProductivityScore,
+    required this.focusBalancePercent,
+    this.dominantStudyType,
   });
 
   final List<ChartDatum> hoursPerDay;
@@ -187,6 +193,32 @@ class AnalyticsSummary {
   final int completedReviews;
   final int completedProjects;
   final int consistencyDays;
+  final double currentWeekHours;
+  final double previousWeekHours;
+  final double averageSessionMinutes;
+  final double averageProductivityScore;
+  final double focusBalancePercent;
+  final SessionType? dominantStudyType;
+}
+
+class StudyPlanPreview {
+  const StudyPlanPreview({
+    required this.headline,
+    required this.confidenceLabel,
+    required this.weeklyHours,
+    required this.horizonWeeks,
+    required this.trackEffortHours,
+    required this.milestones,
+    required this.weeklyPlaybook,
+  });
+
+  final String headline;
+  final String confidenceLabel;
+  final int weeklyHours;
+  final int horizonWeeks;
+  final int trackEffortHours;
+  final List<String> milestones;
+  final List<String> weeklyPlaybook;
 }
 
 class OnboardingInput {
