@@ -57,16 +57,23 @@ class AuthShowcasePanel extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          'assets/design/logo_animated.gif',
-                          width: 168,
-                          height: 168,
-                        ),
-                        const SizedBox(height: 14),
-                        Image.asset(
-                          'assets/design/logo.png',
-                          width: 78,
-                          height: 78,
+                        Container(
+                          width: 176,
+                          height: 176,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.34),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.22),
+                                blurRadius: 42,
+                                spreadRadius: 3,
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: AppLogo(size: 116),
+                          ),
                         ),
                       ],
                     ),
