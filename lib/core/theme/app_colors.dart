@@ -13,7 +13,7 @@ class AppColors {
   static const secondaryAccent = Color(0xFF22D3EE);
   static const successAccent = Color(0xFF22C55E);
   static const warningAccent = Color(0xFFF59E0B);
-  static const dangerAccent = Color(0xFFF59E0B);
+  static const dangerAccent = Color(0xFFEF4444);
 
   static const lightBackground = Color(0xFFF3F6FB);
   static const lightSurface = Color(0xFFFFFFFF);
