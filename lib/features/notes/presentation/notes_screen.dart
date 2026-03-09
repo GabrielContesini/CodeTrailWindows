@@ -191,6 +191,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 allNotes: notes,
                 totalNotes: notes.length,
                 recentNotesCount: recentNotesCount,
+                compact: !medium,
                 onSelectFolder: (folder) {
                   setState(() {
                     _selectedFolder = folder;
@@ -200,9 +201,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               );
 
               final listPane = _NotesListPane(
-                folders: folderList,
                 selectedFolder: _selectedFolder,
-                allNotes: notes,
                 notes: filteredNotes,
                 selectedNoteId: _selectedNoteId,
                 searchQuery: _searchQuery,
@@ -213,12 +212,6 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                 onSearchChanged: (value) {
                   setState(() {
                     _searchQuery = value;
-                    _selectedNoteId = null;
-                  });
-                },
-                onSelectFolder: (folder) {
-                  setState(() {
-                    _selectedFolder = folder;
                     _selectedNoteId = null;
                   });
                 },
@@ -271,7 +264,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                         width: 360,
                         child: Column(
                           children: [
-                            SizedBox(height: 250, child: shelfPane),
+                            SizedBox(height: 232, child: shelfPane),
                             const SizedBox(height: 12),
                             Expanded(child: listPane),
                           ],
@@ -285,7 +278,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
                 return Column(
                   children: [
-                    SizedBox(height: 218, child: shelfPane),
+                    SizedBox(height: 184, child: shelfPane),
                     const SizedBox(height: 12),
                     SizedBox(height: 348, child: listPane),
                     const SizedBox(height: 12),
@@ -296,9 +289,9 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
               return Row(
                 children: [
-                  SizedBox(width: 300, child: shelfPane),
+                  SizedBox(width: 286, child: shelfPane),
                   const SizedBox(width: 14),
-                  SizedBox(width: 390, child: listPane),
+                  SizedBox(width: 370, child: listPane),
                   const SizedBox(width: 14),
                   Expanded(child: detailPane),
                 ],
@@ -313,9 +306,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
 class _NotesListPane extends StatelessWidget {
   const _NotesListPane({
-    required this.folders,
     required this.selectedFolder,
-    required this.allNotes,
     required this.notes,
     required this.selectedNoteId,
     required this.searchQuery,
@@ -324,14 +315,11 @@ class _NotesListPane extends StatelessWidget {
     required this.recentNotesCount,
     required this.noteDocuments,
     required this.onSearchChanged,
-    required this.onSelectFolder,
     required this.onSelectNote,
     required this.onCreateNote,
   });
 
-  final List<String> folders;
   final String selectedFolder;
-  final List<StudyNoteEntity> allNotes;
   final List<StudyNoteEntity> notes;
   final String? selectedNoteId;
   final String searchQuery;
@@ -340,14 +328,11 @@ class _NotesListPane extends StatelessWidget {
   final int recentNotesCount;
   final Map<String, NoteContentDocument> noteDocuments;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String> onSelectFolder;
   final ValueChanged<String> onSelectNote;
   final VoidCallback onCreateNote;
 
   @override
   Widget build(BuildContext context) {
-    final visibleFolders = folders.where((folder) => folder != 'Todas').toList();
-
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -402,70 +387,51 @@ class _NotesListPane extends StatelessWidget {
                   : IconButton(
                       onPressed: () => onSearchChanged(''),
                       icon: const Icon(Icons.close_rounded),
-                    ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 116,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: visibleFolders.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _NotebookShelfCard(
-                    title: 'Todas',
-                    subtitle: 'Estante completa',
-                    noteCount: totalNotes,
-                    recentCount: recentNotesCount,
-                    selected: selectedFolder == 'Todas',
-                    accentColor: context.colorScheme.primary,
-                    onTap: () => onSelectFolder('Todas'),
-                  );
-                }
-
-                final folder = visibleFolders[index - 1];
-                final folderNotes = allNotes.where((note) => note.folderName == folder).toList();
-                folderNotes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-                final recentCount = folderNotes
-                    .where(
-                      (note) => note.updatedAt.isAfter(
-                        DateTime.now().toUtc().subtract(const Duration(days: 7)),
-                      ),
-                    )
-                    .length;
-                return _NotebookShelfCard(
-                  title: folder,
-                  subtitle: folderNotes.isEmpty
-                      ? 'Sem páginas'
-                      : 'Última em ${_formatShortDate(folderNotes.first.updatedAt)}',
-                  noteCount: folderNotes.length,
-                  recentCount: recentCount,
-                  selected: selectedFolder == folder,
-                  accentColor: _folderAccent(index - 1, context.colorScheme),
-                  onTap: () => onSelectFolder(folder),
-                );
-              },
+              ),
             ),
           ),
           const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
-                child: Text(
-                  selectedFolder == 'Todas'
-                      ? 'Páginas do workspace'
-                      : 'Páginas de $selectedFolder',
-                  style: context.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedFolder == 'Todas'
+                          ? 'Páginas do workspace'
+                          : 'Páginas de $selectedFolder',
+                      style: context.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      selectedFolder == 'Todas'
+                          ? 'Resultados de todos os cadernos do workspace.'
+                          : 'Filtro ativo somente para o caderno selecionado.',
+                      style: context.textTheme.bodySmall?.copyWith(
+                        color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                '${notes.length} página(s)',
-                style: context.textTheme.labelLarge?.copyWith(
-                  color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: context.colorScheme.primary.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: context.colorScheme.primary.withValues(alpha: 0.24),
+                  ),
+                ),
+                child: Text(
+                  selectedFolder,
+                  style: context.textTheme.labelLarge?.copyWith(
+                    color: context.colorScheme.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -663,6 +629,7 @@ class _FolderShelfPane extends StatelessWidget {
     required this.allNotes,
     required this.totalNotes,
     required this.recentNotesCount,
+    required this.compact,
     required this.onSelectFolder,
   });
 
@@ -671,6 +638,7 @@ class _FolderShelfPane extends StatelessWidget {
   final List<StudyNoteEntity> allNotes;
   final int totalNotes;
   final int recentNotesCount;
+  final bool compact;
   final ValueChanged<String> onSelectFolder;
 
   @override
@@ -697,47 +665,62 @@ class _FolderShelfPane extends StatelessWidget {
           const SizedBox(height: 14),
           Expanded(
             child: ListView.separated(
+              scrollDirection: compact ? Axis.horizontal : Axis.vertical,
               itemCount: visibleFolders.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => compact
+                  ? const SizedBox(width: 10)
+                  : const SizedBox(height: 10),
               itemBuilder: (context, index) {
-                if (index == 0) {
-                  return _NotebookShelfCard(
-                    title: 'Todas',
-                    subtitle: 'Visão completa das páginas',
-                    noteCount: totalNotes,
-                    recentCount: recentNotesCount,
-                    selected: selectedFolder == 'Todas',
-                    accentColor: context.colorScheme.primary,
-                    onTap: () => onSelectFolder('Todas'),
-                  );
-                }
-
-                final folder = visibleFolders[index - 1];
-                final folderNotes = allNotes.where((note) => note.folderName == folder).toList();
-                folderNotes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-                final recentCount = folderNotes
-                    .where(
-                      (note) => note.updatedAt.isAfter(
-                        DateTime.now().toUtc().subtract(const Duration(days: 7)),
-                      ),
-                    )
-                    .length;
-                return _NotebookShelfCard(
-                  title: folder,
-                  subtitle: folderNotes.isEmpty
-                      ? 'Sem páginas ainda'
-                      : 'Última em ${_formatShortDate(folderNotes.first.updatedAt)}',
-                  noteCount: folderNotes.length,
-                  recentCount: recentCount,
-                  selected: selectedFolder == folder,
-                  accentColor: _folderAccent(index - 1, context.colorScheme),
-                  onTap: () => onSelectFolder(folder),
-                );
+                final card = _buildShelfCard(context, visibleFolders, index);
+                if (!compact) return card;
+                return SizedBox(width: 220, child: card);
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildShelfCard(
+    BuildContext context,
+    List<String> visibleFolders,
+    int index,
+  ) {
+    if (index == 0) {
+      return _NotebookShelfCard(
+        title: 'Todas',
+        subtitle: 'Visão completa das páginas',
+        noteCount: totalNotes,
+        recentCount: recentNotesCount,
+        selected: selectedFolder == 'Todas',
+        accentColor: context.colorScheme.primary,
+        compact: compact,
+        onTap: () => onSelectFolder('Todas'),
+      );
+    }
+
+    final folder = visibleFolders[index - 1];
+    final folderNotes = allNotes.where((note) => note.folderName == folder).toList();
+    folderNotes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final recentCount = folderNotes
+        .where(
+          (note) => note.updatedAt.isAfter(
+            DateTime.now().toUtc().subtract(const Duration(days: 7)),
+          ),
+        )
+        .length;
+    return _NotebookShelfCard(
+      title: folder,
+      subtitle: folderNotes.isEmpty
+          ? 'Sem páginas ainda'
+          : 'Última em ${_formatShortDate(folderNotes.first.updatedAt)}',
+      noteCount: folderNotes.length,
+      recentCount: recentCount,
+      selected: selectedFolder == folder,
+      accentColor: _folderAccent(index - 1, context.colorScheme),
+      compact: compact,
+      onTap: () => onSelectFolder(folder),
     );
   }
 }
@@ -750,6 +733,7 @@ class _NotebookShelfCard extends StatelessWidget {
     required this.recentCount,
     required this.selected,
     required this.accentColor,
+    required this.compact,
     required this.onTap,
   });
 
@@ -759,6 +743,7 @@ class _NotebookShelfCard extends StatelessWidget {
   final int recentCount;
   final bool selected;
   final Color accentColor;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -768,7 +753,7 @@ class _NotebookShelfCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(compact ? 14 : 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           border: Border.all(
@@ -829,7 +814,7 @@ class _NotebookShelfCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _StatChip(label: 'Páginas', value: '$noteCount'),
-                _StatChip(label: '7 dias', value: '$recentCount'),
+                if (!compact) _StatChip(label: '7 dias', value: '$recentCount'),
               ],
             ),
           ],
