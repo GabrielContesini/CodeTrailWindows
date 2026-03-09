@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/models/app_enums.dart';
+import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
@@ -32,13 +33,14 @@ class AnalyticsScreen extends ConsumerWidget {
       ),
       child: AsyncValueView(
         value: analyticsAsync,
-        data: (analytics) {
-          final weeklyDelta = analytics.currentWeekHours - analytics.previousWeekHours;
+        data: (AnalyticsSummary analytics) {
+          final weeklyDelta =
+              analytics.currentWeekHours - analytics.previousWeekHours;
           final weeklyDeltaLabel = weeklyDelta == 0
               ? 'Estável'
               : weeklyDelta > 0
-                  ? '+${weeklyDelta.toStringAsFixed(1)}h'
-                  : '${weeklyDelta.toStringAsFixed(1)}h';
+              ? '+${weeklyDelta.toStringAsFixed(1)}h'
+              : '${weeklyDelta.toStringAsFixed(1)}h';
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -184,7 +186,7 @@ class _InsightCard extends StatelessWidget {
 class _HoursByDayCard extends StatelessWidget {
   const _HoursByDayCard({required this.analytics});
 
-  final dynamic analytics;
+  final AnalyticsSummary analytics;
 
   @override
   Widget build(BuildContext context) {
@@ -202,46 +204,72 @@ class _HoursByDayCard extends StatelessWidget {
           Expanded(
             child: analytics.hoursPerDay.isEmpty
                 ? const _ChartEmptyState(label: 'Ainda sem horas registradas.')
-                : BarChart(
-                    BarChartData(
-                      borderData: FlBorderData(show: false),
-                      gridData: const FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
+                : RepaintBoundary(
+                    child: BarChart(
+                      BarChartData(
+                        minY: 0,
+                        alignment: BarChartAlignment.spaceAround,
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: _gridInterval(
+                            analytics.hoursPerDay,
+                          ),
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.14),
+                            strokeWidth: 1,
+                          ),
                         ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) => Text(
-                              analytics.hoursPerDay[value.toInt()].label,
-                              style: Theme.of(context).textTheme.labelSmall,
+                        titlesData: FlTitlesData(
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          leftTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 30,
+                              getTitlesWidget: (value, meta) => _chartTitle(
+                                context,
+                                value,
+                                analytics.hoursPerDay,
+                              ),
                             ),
                           ),
                         ),
+                        barGroups: analytics.hoursPerDay
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => BarChartGroupData(
+                                x: entry.key,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: entry.value.value,
+                                    width: 20,
+                                    borderRadius: BorderRadius.circular(10),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Theme.of(context).colorScheme.primary,
+                                        Theme.of(context).colorScheme.secondary,
+                                      ],
+                                      begin: Alignment.bottomCenter,
+                                      end: Alignment.topCenter,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            .toList(),
                       ),
-                      barGroups: analytics.hoursPerDay
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => BarChartGroupData(
-                              x: entry.key,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: entry.value.value,
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                              ],
-                            ),
-                          )
-                          .toList(),
                     ),
                   ),
           ),
@@ -254,7 +282,7 @@ class _HoursByDayCard extends StatelessWidget {
 class _HoursByWeekCard extends StatelessWidget {
   const _HoursByWeekCard({required this.analytics});
 
-  final dynamic analytics;
+  final AnalyticsSummary analytics;
 
   @override
   Widget build(BuildContext context) {
@@ -272,54 +300,78 @@ class _HoursByWeekCard extends StatelessWidget {
           Expanded(
             child: analytics.hoursPerWeek.isEmpty
                 ? const _ChartEmptyState(label: 'Sem semanas suficientes ainda.')
-                : LineChart(
-                    LineChartData(
-                      borderData: FlBorderData(show: false),
-                      gridData: const FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
+                : RepaintBoundary(
+                    child: LineChart(
+                      LineChartData(
+                        minX: 0,
+                        maxX: analytics.hoursPerWeek.length <= 1
+                            ? 1
+                            : (analytics.hoursPerWeek.length - 1).toDouble(),
+                        minY: 0,
+                        borderData: FlBorderData(show: false),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: _gridInterval(
+                            analytics.hoursPerWeek,
+                          ),
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outline.withValues(alpha: 0.14),
+                            strokeWidth: 1,
+                          ),
                         ),
-                        topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        leftTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false),
-                        ),
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            getTitlesWidget: (value, meta) => Text(
-                              analytics.hoursPerWeek[value.toInt()].label,
-                              style: Theme.of(context).textTheme.labelSmall,
+                        titlesData: FlTitlesData(
+                          rightTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          topTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          leftTitles: const AxisTitles(
+                            sideTitles: SideTitles(showTitles: false),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 30,
+                              getTitlesWidget: (value, meta) => _chartTitle(
+                                context,
+                                value,
+                                analytics.hoursPerWeek,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      lineBarsData: [
-                        LineChartBarData(
-                          isCurved: true,
-                          barWidth: 3,
-                          color: Theme.of(context).colorScheme.secondary,
-                          belowBarData: BarAreaData(
-                            show: true,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .secondary
-                                .withValues(alpha: 0.10),
+                        lineBarsData: [
+                          LineChartBarData(
+                            isCurved: true,
+                            barWidth: 3,
+                            color: Theme.of(context).colorScheme.secondary,
+                            dotData: FlDotData(
+                              show: analytics.hoursPerWeek.length < 8,
+                            ),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondary
+                                  .withValues(alpha: 0.10),
+                            ),
+                            spots: analytics.hoursPerWeek
+                                .asMap()
+                                .entries
+                                .map(
+                                  (entry) => FlSpot(
+                                    entry.key.toDouble(),
+                                    entry.value.value,
+                                  ),
+                                )
+                                .toList(),
                           ),
-                          spots: analytics.hoursPerWeek
-                              .asMap()
-                              .entries
-                              .map(
-                                (entry) => FlSpot(
-                                  entry.key.toDouble(),
-                                  entry.value.value,
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
           ),
@@ -332,7 +384,7 @@ class _HoursByWeekCard extends StatelessWidget {
 class _DistributionCard extends StatelessWidget {
   const _DistributionCard({required this.analytics});
 
-  final dynamic analytics;
+  final AnalyticsSummary analytics;
 
   @override
   Widget build(BuildContext context) {
@@ -350,20 +402,52 @@ class _DistributionCard extends StatelessWidget {
           Expanded(
             child: analytics.byType.isEmpty
                 ? const _ChartEmptyState(label: 'Registre sessões para abrir o mix.')
-                : PieChart(
-                    PieChartData(
-                      sectionsSpace: 4,
-                      centerSpaceRadius: 42,
-                      sections: analytics.byType.entries
-                          .map(
-                            (entry) => PieChartSectionData(
-                              title: entry.key.label,
-                              value: entry.value,
-                              radius: 76,
+                : Column(
+                    children: [
+                      Expanded(
+                        child: RepaintBoundary(
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 4,
+                              centerSpaceRadius: 42,
+                              sections: analytics.byType.entries
+                                  .toList()
+                                  .asMap()
+                                  .entries
+                                  .map(
+                                    (entry) => PieChartSectionData(
+                                      title: '',
+                                      value: entry.value.value,
+                                      radius: 76,
+                                      color: _distributionColor(
+                                        context,
+                                        entry.key,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                             ),
-                          )
-                          .toList(),
-                    ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: analytics.byType.entries
+                            .toList()
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => _LegendChip(
+                                color: _distributionColor(context, entry.key),
+                                label:
+                                    '${entry.value.key.label} • ${entry.value.value.toStringAsFixed(1)}h',
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
                   ),
           ),
         ],
@@ -409,6 +493,94 @@ class _MetricBox extends StatelessWidget {
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Widget _chartTitle(
+  BuildContext context,
+  double value,
+  List<ChartDatum> points,
+) {
+  final index = value.round();
+  if (index < 0 || index >= points.length) {
+    return const SizedBox.shrink();
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(top: 8),
+    child: Text(
+      points[index].label,
+      style: Theme.of(context).textTheme.labelSmall,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+}
+
+double _gridInterval(List<ChartDatum> points) {
+  if (points.isEmpty) {
+    return 1;
+  }
+
+  final maxValue = points
+      .map((item) => item.value)
+      .fold<double>(0, (current, value) => value > current ? value : current);
+  if (maxValue <= 2) {
+    return 0.5;
+  }
+  if (maxValue <= 6) {
+    return 1;
+  }
+  return (maxValue / 4).clamp(1, maxValue);
+}
+
+Color _distributionColor(BuildContext context, int index) {
+  final scheme = Theme.of(context).colorScheme;
+  final palette = <Color>[
+    scheme.primary,
+    scheme.secondary,
+    scheme.tertiary,
+    scheme.primary.withValues(alpha: 0.72),
+    scheme.secondary.withValues(alpha: 0.72),
+  ];
+  return palette[index % palette.length];
+}
+
+class _LegendChip extends StatelessWidget {
+  const _LegendChip({
+    required this.color,
+    required this.label,
+  });
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium,
           ),
         ],
       ),
