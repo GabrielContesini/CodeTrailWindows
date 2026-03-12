@@ -35,6 +35,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
   final Uuid _uuid = const Uuid();
   final TransformationController _transformController =
       TransformationController();
+  final GlobalKey _canvasViewportKey = GlobalKey();
 
   String _selectedFolder = 'Todas';
   String? _selectedMapId;
@@ -172,6 +173,13 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
             _connectMode = false;
             _connectionSourceNodeId = null;
             _transformController.value = Matrix4.identity();
+            final documentToFit = _draftDocument;
+            if (documentToFit != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _fitContentToViewport(documentToFit);
+              });
+            }
           }
 
           final selectedDocument = selectedMap == null ? null : _draftDocument;
@@ -366,303 +374,557 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                     item.targetId == selectedNode.id,
               )
               .toList();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactWorkspace =
+            constraints.maxWidth < 1320 || constraints.maxHeight < 900;
+        final canvas = _buildCanvas(context, map, document);
+        final inspector = _buildInspector(
+          context,
+          map,
+          document,
+          selectedNode,
+          selectedConnections,
+          compact: compactWorkspace,
+        );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        if (compactWorkspace) {
+          final canvasHeight = math.max(
+            460.0,
+            math.min(760.0, constraints.maxHeight * 0.62),
+          );
+
+          return Scrollbar(
+            thumbVisibility: true,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(right: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          map.title,
-                          style: context.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${map.folderName} • ${_formatDateTime(map.updatedAt)}',
-                          style: context.textTheme.bodySmall?.copyWith(
-                            color: context.colorScheme.onSurface.withValues(
-                              alpha: 0.72,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  _buildWorkspaceHeader(
+                    context,
+                    map,
+                    document,
+                    selectedNode,
+                    contextLabels,
+                    trackBlueprints,
+                    projectBundles,
+                    compact: true,
                   ),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      PopupMenuButton<MindMapNodeShape>(
-                        onSelected: (shape) =>
-                            _createNode(map, document, shape),
-                        itemBuilder: (context) => MindMapNodeShape.values
-                            .map(
-                              (shape) => PopupMenuItem<MindMapNodeShape>(
-                                value: shape,
-                                child: Text(
-                                  'Adicionar ${shape.label.toLowerCase()}',
-                                ),
-                              ),
-                            )
-                            .toList(),
-                        child: _ActionChip(
-                          icon: Icons.add_box_outlined,
-                          label: 'Novo nó',
-                          primary: true,
-                        ),
-                      ),
-                      _ActionChipButton(
-                        onTap: selectedNode == null
-                            ? null
-                            : () => _editNode(map, document, selectedNode),
-                        icon: Icons.edit_outlined,
-                        label: 'Editar nó',
-                      ),
-                      _ActionChipButton(
-                        onTap: selectedNode == null
-                            ? null
-                            : () => setState(() {
-                                _connectMode = !_connectMode;
-                                _connectionSourceNodeId = _connectMode
-                                    ? _selectedNodeId
-                                    : null;
-                              }),
-                        icon: _connectMode
-                            ? Icons.link_off_rounded
-                            : Icons.add_link_rounded,
-                        label: _connectMode ? 'Cancelar' : 'Conectar',
-                      ),
-                      _ActionChipButton(
-                        onTap: _resetZoom,
-                        icon: Icons.center_focus_strong_rounded,
-                        label: 'Resetar',
-                      ),
-                      _ActionChipButton(
-                        onTap: () => _showMindMapDialog(
-                          context,
-                          trackBlueprints: trackBlueprints,
-                          projectBundles: projectBundles,
-                          mindMap: map,
-                        ),
-                        icon: Icons.tune_rounded,
-                        label: 'Editar mapa',
-                      ),
-                      IconButton(
-                        onPressed: () => _deleteMap(map),
-                        icon: const Icon(Icons.delete_outline_rounded),
-                      ),
-                    ],
-                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(height: canvasHeight, child: canvas),
+                  const SizedBox(height: 16),
+                  inspector,
                 ],
               ),
-              if (contextLabels.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: contextLabels
-                      .map((item) => _ContextPill(label: item))
-                      .toList(),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Text(
-                _connectMode
-                    ? _connectionSourceNodeId == null
-                          ? 'Modo conexão ativo. Clique no nó de origem.'
-                          : 'Origem definida. Agora clique no nó de destino.'
-                    : 'Arraste os nós pelo canvas e use o inspetor abaixo para editar a estrutura.',
-                style: context.textTheme.bodyMedium?.copyWith(
-                  color: _connectMode
-                      ? context.colorScheme.primary
-                      : context.colorScheme.onSurface.withValues(alpha: 0.78),
-                  fontWeight: _connectMode ? FontWeight.w700 : FontWeight.w500,
-                ),
+            ),
+          );
+        }
+
+        final inspectorWidth = constraints.maxWidth >= 1560 ? 360.0 : 320.0;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildWorkspaceHeader(
+              context,
+              map,
+              document,
+              selectedNode,
+              contextLabels,
+              trackBlueprints,
+              projectBundles,
+              compact: false,
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: canvas),
+                  const SizedBox(width: 16),
+                  SizedBox(width: inspectorWidth, child: inspector),
+                ],
               ),
-            ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildWorkspaceHeader(
+    BuildContext context,
+    MindMapEntity map,
+    MindMapDocument document,
+    MindMapCanvasNode? selectedNode,
+    List<String> contextLabels,
+    List<TrackBlueprint> trackBlueprints,
+    List<ProjectBundle> projectBundles, {
+    required bool compact,
+  }) {
+    final actions = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        PopupMenuButton<MindMapNodeShape>(
+          onSelected: (shape) => _createNode(map, document, shape),
+          itemBuilder: (context) => MindMapNodeShape.values
+              .map(
+                (shape) => PopupMenuItem<MindMapNodeShape>(
+                  value: shape,
+                  child: Text('Adicionar ${shape.label.toLowerCase()}'),
+                ),
+              )
+              .toList(),
+          child: const _ActionChip(
+            icon: Icons.add_box_outlined,
+            label: 'Novo nó',
+            primary: true,
           ),
         ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: AppCard(
-            padding: EdgeInsets.zero,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      context.colorScheme.surface.withValues(alpha: 0.94),
-                      context.colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.56,
+        _ActionChipButton(
+          onTap: selectedNode == null
+              ? null
+              : () => _editNode(map, document, selectedNode),
+          icon: Icons.edit_outlined,
+          label: 'Editar nó',
+        ),
+        _ActionChipButton(
+          onTap: selectedNode == null
+              ? null
+              : () => setState(() {
+                  _connectMode = !_connectMode;
+                  _connectionSourceNodeId = _connectMode
+                      ? _selectedNodeId
+                      : null;
+                }),
+          icon: _connectMode ? Icons.link_off_rounded : Icons.add_link_rounded,
+          label: _connectMode ? 'Cancelar' : 'Conectar',
+        ),
+        _ActionChipButton(
+          onTap: () => _fitContentToViewport(document),
+          icon: Icons.fit_screen_rounded,
+          label: 'Ajustar',
+        ),
+        _ActionChipButton(
+          onTap: _resetZoom,
+          icon: Icons.center_focus_strong_rounded,
+          label: 'Resetar',
+        ),
+        _ActionChipButton(
+          onTap: () => _showMindMapDialog(
+            context,
+            trackBlueprints: trackBlueprints,
+            projectBundles: projectBundles,
+            mindMap: map,
+          ),
+          icon: Icons.tune_rounded,
+          label: 'Editar mapa',
+        ),
+        IconButton(
+          tooltip: 'Excluir mapa',
+          onPressed: () => _deleteMap(map),
+          icon: const Icon(Icons.delete_outline_rounded),
+        ),
+      ],
+    );
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (compact) ...[
+            Text(
+              map.title,
+              style: context.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${map.folderName} • ${_formatDateTime(map.updatedAt)}',
+              style: context.textTheme.bodySmall?.copyWith(
+                color: context.colorScheme.onSurface.withValues(alpha: 0.72),
+              ),
+            ),
+            const SizedBox(height: 16),
+            actions,
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        map.title,
+                        style: context.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${map.folderName} • ${_formatDateTime(map.updatedAt)}',
+                        style: context.textTheme.bodySmall?.copyWith(
+                          color: context.colorScheme.onSurface.withValues(
+                            alpha: 0.72,
+                          ),
+                        ),
                       ),
                     ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
                 ),
-                child: InteractiveViewer(
-                  transformationController: _transformController,
-                  constrained: false,
-                  minScale: 0.45,
-                  maxScale: 2.4,
-                  boundaryMargin: const EdgeInsets.all(240),
-                  child: SizedBox(
-                    width: _boardWidth,
-                    height: _boardHeight,
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(
-                          child: CustomPaint(painter: _MindMapGridPainter()),
+                const SizedBox(width: 16),
+                Flexible(
+                  child: Align(alignment: Alignment.topRight, child: actions),
+                ),
+              ],
+            ),
+          if (contextLabels.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: contextLabels
+                  .map((item) => _ContextPill(label: item))
+                  .toList(),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Text(
+            _connectMode
+                ? _connectionSourceNodeId == null
+                      ? 'Modo conexão ativo. Clique no nó de origem.'
+                      : 'Origem definida. Agora clique no nó de destino.'
+                : 'Ajuste o conteúdo para enquadrar todos os nós e use o canvas para mover, conectar e revisar a estrutura.',
+            style: context.textTheme.bodyMedium?.copyWith(
+              color: _connectMode
+                  ? context.colorScheme.primary
+                  : context.colorScheme.onSurface.withValues(alpha: 0.78),
+              fontWeight: _connectMode ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCanvas(
+    BuildContext context,
+    MindMapEntity map,
+    MindMapDocument document,
+  ) {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            DecoratedBox(
+              key: _canvasViewportKey,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    context.colorScheme.surface.withValues(alpha: 0.94),
+                    context.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.56,
+                    ),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: InteractiveViewer(
+                transformationController: _transformController,
+                constrained: false,
+                minScale: 0.45,
+                maxScale: 2.4,
+                boundaryMargin: const EdgeInsets.all(240),
+                child: SizedBox(
+                  width: _boardWidth,
+                  height: _boardHeight,
+                  child: Stack(
+                    children: [
+                      const Positioned.fill(
+                        child: CustomPaint(painter: _MindMapGridPainter()),
+                      ),
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _MindMapConnectionsPainter(
+                            nodes: document.nodes,
+                            connections: document.connections,
+                            selectedNodeId: _selectedNodeId,
+                            connectionSourceNodeId: _connectionSourceNodeId,
+                          ),
                         ),
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _MindMapConnectionsPainter(
-                              nodes: document.nodes,
-                              connections: document.connections,
-                              selectedNodeId: _selectedNodeId,
-                              connectionSourceNodeId: _connectionSourceNodeId,
+                      ),
+                      for (final node in document.nodes)
+                        Positioned(
+                          left: node.x,
+                          top: node.y,
+                          child: _NodeWidget(
+                            node: node,
+                            selected: node.id == _selectedNodeId,
+                            onTap: () => _handleNodeTap(map, document, node),
+                            onDrag: (delta) =>
+                                _handleNodeDrag(document, node.id, delta),
+                            onDragEnd: () => _persistDocument(
+                              map,
+                              _draftDocument ?? document,
                             ),
                           ),
                         ),
-                        for (final node in document.nodes)
-                          Positioned(
-                            left: node.x,
-                            top: node.y,
-                            child: _NodeWidget(
-                              node: node,
-                              selected: node.id == _selectedNodeId,
-                              onTap: () => _handleNodeTap(map, document, node),
-                              onDrag: (delta) =>
-                                  _handleNodeDrag(document, node.id, delta),
-                              onDragEnd: () => _persistDocument(
-                                map,
-                                _draftDocument ?? document,
-                              ),
-                            ),
-                          ),
-                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 18,
+              bottom: 18,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: context.colorScheme.surface.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: context.colorScheme.outline.withValues(alpha: 0.7),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    'Arraste no fundo para navegar. Use Ajustar para focar todos os nós.',
+                    style: context.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInspector(
+    BuildContext context,
+    MindMapEntity map,
+    MindMapDocument document,
+    MindMapCanvasNode? selectedNode,
+    List<MindMapCanvasConnection> selectedConnections, {
+    required bool compact,
+  }) {
+    if (selectedNode == null) {
+      return AppCard(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: compact ? 160 : 0),
+          child: Center(
+            child: Text(
+              'Selecione um nó para editar ou revisar as conexões.',
+              style: context.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 220,
-          child: AppCard(
-            child: selectedNode == null
-                ? Center(
-                    child: Text(
-                      'Selecione um nó para editar ou revisar as conexões.',
-                      style: context.textTheme.bodyMedium,
+      );
+    }
+
+    final connectionWrap = selectedConnections.isEmpty
+        ? Center(
+            child: Text(
+              'Esse nó ainda não está conectado.',
+              style: context.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          )
+        : Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: selectedConnections.map((connection) {
+              final otherNode = _otherNode(
+                document,
+                connection,
+                selectedNode.id,
+              );
+              return InputChip(
+                label: Text(otherNode?.label ?? 'Conexão'),
+                onDeleted: () =>
+                    _deleteConnection(map, document, connection.id),
+              );
+            }).toList(),
+          );
+
+    final header = LayoutBuilder(
+      builder: (context, constraints) {
+        final stackActions = compact || constraints.maxWidth < 340;
+        final actions = Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: () => _editNode(map, document, selectedNode),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: const Text('Editar'),
+            ),
+            FilledButton.tonalIcon(
+              onPressed: () => _deleteNode(map, document, selectedNode),
+              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+              label: const Text('Excluir'),
+            ),
+          ],
+        );
+
+        if (stackActions) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                selectedNode.label,
+                style: context.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${selectedNode.shape.label} • ${selectedNode.x.round()} x ${selectedNode.y.round()}',
+                style: context.textTheme.bodySmall,
+              ),
+              const SizedBox(height: 14),
+              actions,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    selectedNode.label,
+                    style: context.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
                     ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  selectedNode.label,
-                                  style: context.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${selectedNode.shape.label} • ${selectedNode.x.round()} x ${selectedNode.y.round()}',
-                                  style: context.textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          FilledButton.tonalIcon(
-                            onPressed: () =>
-                                _editNode(map, document, selectedNode),
-                            icon: const Icon(Icons.edit_outlined, size: 18),
-                            label: const Text('Editar'),
-                          ),
-                          const SizedBox(width: 10),
-                          FilledButton.tonalIcon(
-                            onPressed: () =>
-                                _deleteNode(map, document, selectedNode),
-                            icon: const Icon(
-                              Icons.delete_outline_rounded,
-                              size: 18,
-                            ),
-                            label: const Text('Excluir'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Conexões',
-                        style: context.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Expanded(
-                        child: selectedConnections.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Esse nó ainda não está conectado.',
-                                  style: context.textTheme.bodyMedium,
-                                ),
-                              )
-                            : SingleChildScrollView(
-                                child: Wrap(
-                                  spacing: 10,
-                                  runSpacing: 10,
-                                  children: selectedConnections.map((
-                                    connection,
-                                  ) {
-                                    final otherNode = _otherNode(
-                                      document,
-                                      connection,
-                                      selectedNode.id,
-                                    );
-                                    return InputChip(
-                                      label: Text(
-                                        otherNode?.label ?? 'Conexão',
-                                      ),
-                                      onDeleted: () => _deleteConnection(
-                                        map,
-                                        document,
-                                        connection.id,
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                      ),
-                    ],
                   ),
-          ),
-        ),
-      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${selectedNode.shape.label} • ${selectedNode.x.round()} x ${selectedNode.y.round()}',
+                    style: context.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            actions,
+          ],
+        );
+      },
+    );
+
+    return AppCard(
+      child: compact
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                header,
+                const SizedBox(height: 14),
+                Text(
+                  'Conexões',
+                  style: context.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                connectionWrap,
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                header,
+                const SizedBox(height: 14),
+                Text(
+                  'Conexões',
+                  style: context.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: selectedConnections.isEmpty
+                      ? connectionWrap
+                      : Scrollbar(
+                          thumbVisibility: true,
+                          child: SingleChildScrollView(child: connectionWrap),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
   void _resetZoom() {
     _transformController.value = Matrix4.identity();
+  }
+
+  void _fitContentToViewport(MindMapDocument document) {
+    if (document.nodes.isEmpty) {
+      _resetZoom();
+      return;
+    }
+
+    final viewportContext = _canvasViewportKey.currentContext;
+    final renderBox = viewportContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null || !renderBox.hasSize) {
+      _resetZoom();
+      return;
+    }
+
+    final viewport = renderBox.size;
+    final left = document.nodes
+        .map((item) => item.x)
+        .reduce((value, element) => math.min(value, element));
+    final top = document.nodes
+        .map((item) => item.y)
+        .reduce((value, element) => math.min(value, element));
+    final right = document.nodes
+        .map((item) => item.x + item.width)
+        .reduce((value, element) => math.max(value, element));
+    final bottom = document.nodes
+        .map((item) => item.y + item.height)
+        .reduce((value, element) => math.max(value, element));
+
+    const padding = 120.0;
+    final targetRect = Rect.fromLTRB(
+      math.max(0.0, left - padding),
+      math.max(0.0, top - padding),
+      math.min(_boardWidth, right + padding),
+      math.min(_boardHeight, bottom + padding),
+    );
+
+    final scaleX = viewport.width / math.max(targetRect.width, 1.0);
+    final scaleY = viewport.height / math.max(targetRect.height, 1.0);
+    final scale = math.min(math.min(scaleX, scaleY), 1.0).clamp(0.45, 2.4);
+
+    final translatedX =
+        (viewport.width - targetRect.width * scale) / 2 -
+        targetRect.left * scale;
+    final translatedY =
+        (viewport.height - targetRect.height * scale) / 2 -
+        targetRect.top * scale;
+
+    _transformController.value = Matrix4.identity()
+      ..translateByDouble(translatedX, translatedY, 0, 1)
+      ..scaleByDouble(scale, scale, scale, 1);
   }
 
   Future<void> _createNode(
