@@ -80,33 +80,35 @@ void main() {
       expect(syncService.currentState.phase, SyncActivityPhase.success);
     });
 
-    test('deleteTask creates delete queue entry and removes remote row after sync',
-        () async {
-      final task = _buildTask();
-      await repository.saveTask(task);
+    test(
+      'deleteTask creates delete queue entry and removes remote row after sync',
+      () async {
+        final task = _buildTask();
+        await repository.saveTask(task);
 
-      connectivityService.connected = true;
-      await repository.forceSync(userId);
+        connectivityService.connected = true;
+        await repository.forceSync(userId);
 
-      connectivityService.connected = false;
-      await repository.deleteTask(task.id);
+        connectivityService.connected = false;
+        await repository.deleteTask(task.id);
 
-      var pending = await database.pendingQueueEntries();
-      var localTasks = await database.watchTasks(userId).first;
+        var pending = await database.pendingQueueEntries();
+        var localTasks = await database.watchTasks(userId).first;
 
-      expect(localTasks, isEmpty);
-      expect(pending, hasLength(1));
-      expect(pending.single.action, 'delete');
-      expect(pending.single.recordId, task.id);
+        expect(localTasks, isEmpty);
+        expect(pending, hasLength(1));
+        expect(pending.single.action, 'delete');
+        expect(pending.single.recordId, task.id);
 
-      connectivityService.connected = true;
-      await repository.forceSync(userId);
+        connectivityService.connected = true;
+        await repository.forceSync(userId);
 
-      pending = await database.pendingQueueEntries();
+        pending = await database.pendingQueueEntries();
 
-      expect(pending, isEmpty);
-      expect(remoteDataSource.rowsFor('tasks'), isEmpty);
-    });
+        expect(pending, isEmpty);
+        expect(remoteDataSource.rowsFor('tasks'), isEmpty);
+      },
+    );
 
     test('saveNote uses custom payload path and syncs successfully', () async {
       final note = StudyNoteEntity(
@@ -120,14 +122,20 @@ void main() {
       );
 
       await repository.saveNote(note);
-      expect((await database.pendingQueueEntries()).single.tableName, 'study_notes');
+      expect(
+        (await database.pendingQueueEntries()).single.tableName,
+        'study_notes',
+      );
 
       connectivityService.connected = true;
       await repository.forceSync(userId);
 
       expect(await database.pendingQueueEntries(), isEmpty);
       expect(remoteDataSource.rowsFor('study_notes'), hasLength(1));
-      expect(remoteDataSource.rowsFor('study_notes').single['title'], note.title);
+      expect(
+        remoteDataSource.rowsFor('study_notes').single['title'],
+        note.title,
+      );
     });
   });
 }
@@ -148,8 +156,8 @@ TaskEntity _buildTask() {
 
 class _FakeConnectivityService extends ConnectivityService {
   _FakeConnectivityService({required bool connected})
-      : _connected = connected,
-        super(Connectivity());
+    : _connected = connected,
+      super(Connectivity());
 
   bool _connected;
 
@@ -174,7 +182,8 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
   Future<void> upsertRow(String table, Map<String, dynamic> payload) async {
     final row = Map<String, dynamic>.from(payload);
     final id = row['id'] as String;
-    _tables.putIfAbsent(table, () => <String, Map<String, dynamic>>{})[id] = row;
+    _tables.putIfAbsent(table, () => <String, Map<String, dynamic>>{})[id] =
+        row;
   }
 
   @override
@@ -187,10 +196,9 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
     List<Map<String, dynamic>> table(String name) => rowsFor(name);
 
     return RemoteSyncBundle(
-      profiles: table('profiles')
-          .where((row) => row['id'] == userId)
-          .map(ProfileModel.fromJson)
-          .toList(),
+      profiles: table(
+        'profiles',
+      ).where((row) => row['id'] == userId).map(ProfileModel.fromJson).toList(),
       goals: table('user_goals')
           .where((row) => row['user_id'] == userId)
           .map(UserGoalModel.fromJson)
@@ -218,10 +226,16 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
           .where((row) => row['user_id'] == userId)
           .map(ProjectModel.fromJson)
           .toList(),
-      projectSteps: table('project_steps').map(ProjectStepModel.fromJson).toList(),
+      projectSteps: table(
+        'project_steps',
+      ).map(ProjectStepModel.fromJson).toList(),
       notes: table('study_notes')
           .where((row) => row['user_id'] == userId)
           .map(StudyNoteModel.fromJson)
+          .toList(),
+      flashcards: table('flashcards')
+          .where((row) => row['user_id'] == userId)
+          .map(FlashcardModel.fromJson)
           .toList(),
       settings: table('app_settings')
           .where((row) => row['user_id'] == userId)

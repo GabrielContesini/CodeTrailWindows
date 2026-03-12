@@ -43,7 +43,8 @@ class _NavigationShellScaffoldState
               item.route == AppRoutes.sessions ||
               item.route == AppRoutes.tasks ||
               item.route == AppRoutes.projects ||
-              item.route == AppRoutes.notes,
+              item.route == AppRoutes.notes ||
+              item.route == AppRoutes.flashcards,
         )
         .toList();
     final secondaryItems = items
@@ -454,9 +455,7 @@ class _SidebarProfileCard extends ConsumerWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outline.withValues(alpha: 0.82),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.82),
         ),
         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
       ),
@@ -647,6 +646,11 @@ class _WorkspaceTopBar extends StatelessWidget {
                       icon: const Icon(Icons.note_alt_outlined, size: 18),
                       label: const Text('Notas'),
                     ),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(AppRoutes.flashcards),
+                      icon: const Icon(Icons.style_outlined, size: 18),
+                      label: const Text('Flashcards'),
+                    ),
                     FilledButton.icon(
                       onPressed: () => context.go(AppRoutes.newSession),
                       icon: const Icon(Icons.play_arrow_rounded, size: 18),
@@ -691,9 +695,9 @@ class _TopBarCopy extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 4),
         Text(
@@ -708,10 +712,7 @@ class _TopBarCopy extends StatelessWidget {
 }
 
 class _WorkspaceRail extends ConsumerWidget {
-  const _WorkspaceRail({
-    required this.location,
-    required this.onClose,
-  });
+  const _WorkspaceRail({required this.location, required this.onClose});
 
   final String location;
   final VoidCallback onClose;
@@ -822,7 +823,8 @@ class _WorkspaceRail extends ConsumerWidget {
                   const SizedBox(height: 10),
                   _MetricLine(
                     label: 'Meta',
-                    value: goal?.primaryGoal ??
+                    value:
+                        goal?.primaryGoal ??
                         'Conclua o onboarding para definir.',
                   ),
                   const SizedBox(height: 10),
@@ -904,9 +906,7 @@ class _RailBlock extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(
-            context,
-          ).colorScheme.outline.withValues(alpha: 0.82),
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.82),
         ),
         color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.38),
       ),
@@ -915,9 +915,9 @@ class _RailBlock extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           child,
@@ -1036,10 +1036,7 @@ class _ShortcutTile extends StatelessWidget {
                     context,
                   ).colorScheme.primary.withValues(alpha: 0.12),
                 ),
-                child: Icon(
-                  icon,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                child: Icon(icon, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1053,7 +1050,10 @@ class _ShortcutTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -1119,8 +1119,7 @@ _RouteMeta _routeMeta(String location) {
   if (location == AppRoutes.dashboard) {
     return const _RouteMeta(
       title: 'Dashboard',
-      subtitle:
-          'Resumo executivo do estudo, da execução e das próximas ações.',
+      subtitle: 'Resumo executivo do estudo, da execução e das próximas ações.',
     );
   }
   if (location == AppRoutes.tracks ||
@@ -1139,8 +1138,7 @@ _RouteMeta _routeMeta(String location) {
   if (location == AppRoutes.tasks) {
     return const _RouteMeta(
       title: 'Tarefas',
-      subtitle:
-          'Transforme planejamento em execução com prazos e prioridade.',
+      subtitle: 'Transforme planejamento em execução com prazos e prioridade.',
     );
   }
   if (location == AppRoutes.reviews) {
@@ -1160,6 +1158,12 @@ _RouteMeta _routeMeta(String location) {
     return const _RouteMeta(
       title: 'Notas',
       subtitle: 'Base viva de resumos, comandos, snippets e checkpoints.',
+    );
+  }
+  if (location == AppRoutes.flashcards) {
+    return const _RouteMeta(
+      title: 'Flashcards',
+      subtitle: 'Revisão ativa com decks, fila do dia e repetição espaçada.',
     );
   }
   if (location == AppRoutes.analytics) {

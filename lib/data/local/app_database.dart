@@ -256,6 +256,29 @@ class StudyNotesTable extends Table with AuditColumns {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class FlashcardsTable extends Table with AuditColumns {
+  @override
+  String get tableName => 'flashcards';
+
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get deckName => text()();
+  TextColumn get question => text()();
+  TextColumn get answer => text()();
+  TextColumn get trackId => text().nullable()();
+  TextColumn get moduleId => text().nullable()();
+  TextColumn get projectId => text().nullable()();
+  DateTimeColumn get dueAt => dateTime()();
+  DateTimeColumn get lastReviewedAt => dateTime().nullable()();
+  IntColumn get reviewCount => integer().withDefault(const Constant(0))();
+  IntColumn get correctStreak => integer().withDefault(const Constant(0))();
+  RealColumn get easeFactor => real().withDefault(const Constant(2.3))();
+  IntColumn get intervalDays => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class PendingSyncQueueRecord {
   const PendingSyncQueueRecord({
     required this.id,
@@ -296,6 +319,7 @@ class PendingSyncQueueRecord {
     SyncQueueTable,
     AppSettingsTable,
     StudyNotesTable,
+    FlashcardsTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -303,7 +327,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -311,6 +335,9 @@ class AppDatabase extends _$AppDatabase {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.createTable(studyNotesTable);
+      }
+      if (from < 3) {
+        await m.createTable(flashcardsTable);
       }
     },
   );
@@ -342,6 +369,16 @@ class AppDatabase extends _$AppDatabase {
           ..where((tbl) => tbl.userId.equals(userId))
           ..orderBy([
             (tbl) => OrderingTerm.asc(tbl.folderName),
+            (tbl) => OrderingTerm.desc(tbl.updatedAt),
+          ]))
+        .watch();
+  }
+
+  Stream<List<FlashcardsTableData>> watchFlashcards(String userId) {
+    return (select(flashcardsTable)
+          ..where((tbl) => tbl.userId.equals(userId))
+          ..orderBy([
+            (tbl) => OrderingTerm.asc(tbl.dueAt),
             (tbl) => OrderingTerm.desc(tbl.updatedAt),
           ]))
         .watch();
@@ -410,65 +447,65 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<SyncQueueDiagnostics> watchSyncQueueDiagnostics() {
-    return (select(syncQueueTable)
-          ..orderBy([(tbl) => OrderingTerm.desc(tbl.updatedAt)]))
-        .watch()
-        .map((rows) {
-          if (rows.isEmpty) {
-            return const SyncQueueDiagnostics.empty();
-          }
+    return (select(
+      syncQueueTable,
+    )..orderBy([(tbl) => OrderingTerm.desc(tbl.updatedAt)])).watch().map((
+      rows,
+    ) {
+      if (rows.isEmpty) {
+        return const SyncQueueDiagnostics.empty();
+      }
 
-          final failedRows = rows
-              .where((row) => row.lastError != null && row.lastError!.isNotEmpty)
-              .toList();
-          final oldestPendingAt = rows
-              .map((row) => row.createdAt)
-              .reduce((left, right) => left.isBefore(right) ? left : right);
-          final latestAttemptAt = rows
-              .map((row) => row.updatedAt)
-              .reduce((left, right) => left.isAfter(right) ? left : right);
+      final failedRows = rows
+          .where((row) => row.lastError != null && row.lastError!.isNotEmpty)
+          .toList();
+      final oldestPendingAt = rows
+          .map((row) => row.createdAt)
+          .reduce((left, right) => left.isBefore(right) ? left : right);
+      final latestAttemptAt = rows
+          .map((row) => row.updatedAt)
+          .reduce((left, right) => left.isAfter(right) ? left : right);
 
-          return SyncQueueDiagnostics(
-            pendingItems: rows.length,
-            blockedItems: rows
-                .where(
-                  (row) => !SyncRetryPolicy.isReady(
-                    attempts: row.attempts,
-                    updatedAt: row.updatedAt,
-                    lastError: row.lastError,
-                  ),
-                )
-                .length,
-            failedItems: failedRows.length,
-            lastError: failedRows.isEmpty ? null : failedRows.first.lastError,
-            oldestPendingAt: oldestPendingAt,
-            latestAttemptAt: latestAttemptAt,
-            nextRetryAt: rows
-                .map(
-                  (row) => SyncRetryPolicy.nextRetryAt(
-                    attempts: row.attempts,
-                    updatedAt: row.updatedAt,
-                    lastError: row.lastError,
-                  ),
-                )
-                .whereType<DateTime>()
-                .fold<DateTime?>(
-                  null,
-                  (current, candidate) => current == null ||
-                          candidate.isBefore(current)
-                      ? candidate
-                      : current,
-                ),
-          );
-        });
+      return SyncQueueDiagnostics(
+        pendingItems: rows.length,
+        blockedItems: rows
+            .where(
+              (row) => !SyncRetryPolicy.isReady(
+                attempts: row.attempts,
+                updatedAt: row.updatedAt,
+                lastError: row.lastError,
+              ),
+            )
+            .length,
+        failedItems: failedRows.length,
+        lastError: failedRows.isEmpty ? null : failedRows.first.lastError,
+        oldestPendingAt: oldestPendingAt,
+        latestAttemptAt: latestAttemptAt,
+        nextRetryAt: rows
+            .map(
+              (row) => SyncRetryPolicy.nextRetryAt(
+                attempts: row.attempts,
+                updatedAt: row.updatedAt,
+                lastError: row.lastError,
+              ),
+            )
+            .whereType<DateTime>()
+            .fold<DateTime?>(
+              null,
+              (current, candidate) =>
+                  current == null || candidate.isBefore(current)
+                  ? candidate
+                  : current,
+            ),
+      );
+    });
   }
 
   Stream<List<SyncQueueItemViewModel>> watchSyncQueueItems() {
-    return (select(syncQueueTable)
-          ..orderBy([
-            (tbl) => OrderingTerm.desc(tbl.updatedAt),
-            (tbl) => OrderingTerm.desc(tbl.createdAt),
-          ]))
+    return (select(syncQueueTable)..orderBy([
+          (tbl) => OrderingTerm.desc(tbl.updatedAt),
+          (tbl) => OrderingTerm.desc(tbl.createdAt),
+        ]))
         .watch()
         .map(
           (rows) => rows
@@ -562,6 +599,11 @@ class AppDatabase extends _$AppDatabase {
       await (delete(
         studyNotesTable,
       )..where((tbl) => tbl.userId.equals(userId))).go();
+      if (bundle.flashcardsAvailable) {
+        await (delete(
+          flashcardsTable,
+        )..where((tbl) => tbl.userId.equals(userId))).go();
+      }
       await (delete(profilesTable)..where((tbl) => tbl.id.equals(userId))).go();
 
       await batch((batch) {
@@ -613,6 +655,14 @@ class AppDatabase extends _$AppDatabase {
           studyNotesTable,
           bundle.notes.map((item) => item.toCompanion(pending: false)).toList(),
         );
+        if (bundle.flashcardsAvailable) {
+          batch.insertAllOnConflictUpdate(
+            flashcardsTable,
+            bundle.flashcards
+                .map((item) => item.toCompanion(pending: false))
+                .toList(),
+          );
+        }
         batch.insertAllOnConflictUpdate(
           appSettingsTable,
           bundle.settings
@@ -691,9 +741,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> deleteReviewById(String reviewId) {
-    return (delete(
-      reviewsTable,
-    )..where((tbl) => tbl.id.equals(reviewId))).go();
+    return (delete(reviewsTable)..where((tbl) => tbl.id.equals(reviewId))).go();
   }
 
   Future<void> upsertProject(ProjectModel model, {bool pending = false}) {
@@ -749,13 +797,27 @@ class AppDatabase extends _$AppDatabase {
     StudyNotesTableCompanion companion, {
     bool pending = false,
   }) {
-    return into(studyNotesTable).insertOnConflictUpdate(
-      companion.copyWith(pendingSync: Value(pending)),
-    );
+    return into(
+      studyNotesTable,
+    ).insertOnConflictUpdate(companion.copyWith(pendingSync: Value(pending)));
   }
 
   Future<void> deleteNoteById(String noteId) {
-    return (delete(studyNotesTable)..where((tbl) => tbl.id.equals(noteId))).go();
+    return (delete(
+      studyNotesTable,
+    )..where((tbl) => tbl.id.equals(noteId))).go();
+  }
+
+  Future<void> upsertFlashcard(FlashcardModel model, {bool pending = false}) {
+    return into(
+      flashcardsTable,
+    ).insertOnConflictUpdate(model.toCompanion(pending: pending));
+  }
+
+  Future<void> deleteFlashcardById(String flashcardId) {
+    return (delete(
+      flashcardsTable,
+    )..where((tbl) => tbl.id.equals(flashcardId))).go();
   }
 
   Future<void> queueUpsert({
@@ -1071,6 +1133,30 @@ extension on StudyNoteModel {
       folderName: folderName,
       title: title,
       content: content,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      pendingSync: Value(pending),
+    );
+  }
+}
+
+extension on FlashcardModel {
+  FlashcardsTableCompanion toCompanion({bool pending = false}) {
+    return FlashcardsTableCompanion.insert(
+      id: id,
+      userId: userId,
+      deckName: deckName,
+      question: question,
+      answer: answer,
+      trackId: Value(trackId),
+      moduleId: Value(moduleId),
+      projectId: Value(projectId),
+      dueAt: dueAt,
+      lastReviewedAt: Value(lastReviewedAt),
+      reviewCount: Value(reviewCount),
+      correctStreak: Value(correctStreak),
+      easeFactor: Value(easeFactor),
+      intervalDays: Value(intervalDays),
       createdAt: createdAt,
       updatedAt: updatedAt,
       pendingSync: Value(pending),

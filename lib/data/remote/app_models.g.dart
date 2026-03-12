@@ -401,6 +401,48 @@ Map<String, dynamic> _$StudyNoteModelToJson(_StudyNoteModel instance) =>
       'updated_at': instance.updatedAt.toIso8601String(),
     };
 
+_FlashcardModel _$FlashcardModelFromJson(Map<String, dynamic> json) =>
+    _FlashcardModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      deckName: json['deck_name'] as String,
+      question: json['question'] as String,
+      answer: json['answer'] as String,
+      trackId: json['track_id'] as String?,
+      moduleId: json['module_id'] as String?,
+      projectId: json['project_id'] as String?,
+      dueAt: DateTime.parse(json['due_at'] as String),
+      lastReviewedAt: json['last_reviewed_at'] == null
+          ? null
+          : DateTime.parse(json['last_reviewed_at'] as String),
+      reviewCount: (json['review_count'] as num).toInt(),
+      correctStreak: (json['correct_streak'] as num).toInt(),
+      easeFactor: (json['ease_factor'] as num).toDouble(),
+      intervalDays: (json['interval_days'] as num).toInt(),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+
+Map<String, dynamic> _$FlashcardModelToJson(_FlashcardModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'user_id': instance.userId,
+      'deck_name': instance.deckName,
+      'question': instance.question,
+      'answer': instance.answer,
+      'track_id': instance.trackId,
+      'module_id': instance.moduleId,
+      'project_id': instance.projectId,
+      'due_at': instance.dueAt.toIso8601String(),
+      'last_reviewed_at': instance.lastReviewedAt?.toIso8601String(),
+      'review_count': instance.reviewCount,
+      'correct_streak': instance.correctStreak,
+      'ease_factor': instance.easeFactor,
+      'interval_days': instance.intervalDays,
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
+    };
+
 _AppSettingsModel _$AppSettingsModelFromJson(Map<String, dynamic> json) =>
     _AppSettingsModel(
       id: json['id'] as String,

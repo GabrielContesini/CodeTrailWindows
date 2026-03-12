@@ -25,6 +25,8 @@ class IconMapper {
         return Icons.history_edu_rounded;
       case 'notes':
         return Icons.note_alt_rounded;
+      case 'cards':
+        return Icons.style_rounded;
       default:
         return Icons.auto_awesome_rounded;
     }

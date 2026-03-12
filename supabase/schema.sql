@@ -172,6 +172,25 @@ create table if not exists public.study_notes (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.flashcards (
+  id text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  deck_name text not null default 'Geral',
+  question text not null,
+  answer text not null default '',
+  track_id text references public.study_tracks(id) on delete set null,
+  module_id text references public.study_modules(id) on delete set null,
+  project_id text references public.projects(id) on delete set null,
+  due_at timestamptz not null default timezone('utc', now()),
+  last_reviewed_at timestamptz,
+  review_count integer not null default 0,
+  correct_streak integer not null default 0,
+  ease_factor numeric(4,2) not null default 2.30,
+  interval_days integer not null default 0,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.sync_queue (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -203,6 +222,7 @@ create index if not exists idx_reviews_user_id_scheduled_for on public.reviews(u
 create index if not exists idx_projects_user_id_status on public.projects(user_id, status);
 create index if not exists idx_project_steps_project_id on public.project_steps(project_id);
 create index if not exists idx_study_notes_user_id_folder_name on public.study_notes(user_id, folder_name);
+create index if not exists idx_flashcards_user_id_due_at on public.flashcards(user_id, due_at);
 create index if not exists idx_sync_queue_user_id_created_at on public.sync_queue(user_id, created_at);
 create index if not exists idx_study_skills_track_id on public.study_skills(track_id, sort_order);
 create index if not exists idx_study_modules_track_id on public.study_modules(track_id, sort_order);
@@ -267,6 +287,11 @@ create trigger set_study_notes_updated_at
 before update on public.study_notes
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_flashcards_updated_at on public.flashcards;
+create trigger set_flashcards_updated_at
+before update on public.flashcards
+for each row execute function public.set_updated_at();
+
 drop trigger if exists set_sync_queue_updated_at on public.sync_queue;
 create trigger set_sync_queue_updated_at
 before update on public.sync_queue
@@ -313,6 +338,7 @@ alter table public.reviews enable row level security;
 alter table public.projects enable row level security;
 alter table public.project_steps enable row level security;
 alter table public.study_notes enable row level security;
+alter table public.flashcards enable row level security;
 alter table public.sync_queue enable row level security;
 alter table public.app_settings enable row level security;
 
@@ -432,6 +458,14 @@ with check (
 drop policy if exists "study_notes_all_own" on public.study_notes;
 create policy "study_notes_all_own"
 on public.study_notes
+for all
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "flashcards_all_own" on public.flashcards;
+create policy "flashcards_all_own"
+on public.flashcards
 for all
 to authenticated
 using (auth.uid() = user_id)

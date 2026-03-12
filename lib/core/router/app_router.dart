@@ -9,6 +9,7 @@ import '../../features/analytics/presentation/analytics_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/flashcards/presentation/flashcards_screen.dart';
 import '../../features/notes/presentation/notes_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/projects/presentation/projects_screen.dart';
@@ -45,6 +46,7 @@ class AppRoutes {
   static const projects = '/projects';
   static const projectDetails = '/projects/details';
   static const notes = '/notes';
+  static const flashcards = '/flashcards';
   static const analytics = '/analytics';
   static const settings = '/settings';
   static const settingsAccount = '/settings/account';
@@ -140,6 +142,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const NotesScreen(),
           ),
           GoRoute(
+            path: AppRoutes.flashcards,
+            builder: (context, state) => const FlashcardsScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.analytics,
             builder: (context, state) => const AnalyticsScreen(),
           ),
@@ -211,10 +217,11 @@ List<AppNavigationItem> buildNavigationItems() {
       route: AppRoutes.projects,
       iconKey: 'server',
     ),
+    AppNavigationItem(label: 'Notas', route: AppRoutes.notes, iconKey: 'notes'),
     AppNavigationItem(
-      label: 'Notas',
-      route: AppRoutes.notes,
-      iconKey: 'notes',
+      label: 'Flashcards',
+      route: AppRoutes.flashcards,
+      iconKey: 'cards',
     ),
     AppNavigationItem(
       label: 'Analytics',

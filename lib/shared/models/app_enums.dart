@@ -25,6 +25,8 @@ enum FocusType { job, promotion, freelance, solidFoundation, careerTransition }
 @JsonEnum(fieldRename: FieldRename.snake)
 enum ThemePreference { system, dark, light }
 
+enum FlashcardReviewGrade { again, hard, good, easy }
+
 extension SkillLevelX on SkillLevel {
   String get label {
     switch (this) {
@@ -150,6 +152,21 @@ extension ProjectStatusX on ProjectStatus {
         return 'Bloqueado';
       case ProjectStatus.completed:
         return 'Concluído';
+    }
+  }
+}
+
+extension FlashcardReviewGradeX on FlashcardReviewGrade {
+  String get label {
+    switch (this) {
+      case FlashcardReviewGrade.again:
+        return 'Errei';
+      case FlashcardReviewGrade.hard:
+        return 'Difícil';
+      case FlashcardReviewGrade.good:
+        return 'Bom';
+      case FlashcardReviewGrade.easy:
+        return 'Fácil';
     }
   }
 }

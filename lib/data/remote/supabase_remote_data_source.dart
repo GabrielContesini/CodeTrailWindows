@@ -54,6 +54,17 @@ class SupabaseRemoteDataSource {
         .from('projects')
         .select()
         .eq('user_id', userId);
+    var flashcardsAvailable = true;
+    List<dynamic> flashcardRows = <dynamic>[];
+    try {
+      flashcardRows = await _client
+          .from('flashcards')
+          .select()
+          .eq('user_id', userId);
+    } catch (_) {
+      flashcardsAvailable = false;
+      flashcardRows = <dynamic>[];
+    }
     List<dynamic> noteRows = <dynamic>[];
     try {
       noteRows = await _client
@@ -133,10 +144,15 @@ class SupabaseRemoteDataSource {
           .cast<Map<String, dynamic>>()
           .map(StudyNoteModel.fromJson)
           .toList(),
+      flashcards: flashcardRows
+          .cast<Map<String, dynamic>>()
+          .map(FlashcardModel.fromJson)
+          .toList(),
       settings: settingRows
           .cast<Map<String, dynamic>>()
           .map(AppSettingsModel.fromJson)
           .toList(),
+      flashcardsAvailable: flashcardsAvailable,
     );
   }
 }

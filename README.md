@@ -131,6 +131,10 @@ Fluxo:
 3. faça push da tag
 4. o GitHub Actions compila o bundle, gera o `setup.exe` e anexa os arquivos na GitHub Release
 
+Observação:
+
+- em push por tag, o workflow valida se a tag bate com o `build-name` do `pubspec.yaml`
+
 Se quiser sobrescrever o ambiente no seu PC local, mantenha `env/supabase.local.json`. Os scripts preferem:
 
 1. `env/supabase.github.json`

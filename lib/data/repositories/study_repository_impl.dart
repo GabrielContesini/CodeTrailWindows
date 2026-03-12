@@ -122,8 +122,8 @@ class StudyRepositoryImpl implements StudyRepository {
       final message = flushed.processedItems > 0
           ? '${flushed.processedItems} alteracao(oes) sincronizadas com a nuvem.'
           : flushed.deferredItems > 0
-              ? '${flushed.deferredItems} alteracao(oes) ainda aguardam retry.'
-              : 'Local e nuvem ja estavam em dia.';
+          ? '${flushed.deferredItems} alteracao(oes) ainda aguardam retry.'
+          : 'Local e nuvem ja estavam em dia.';
       _syncService.markSyncSuccess(message);
     } catch (error) {
       _syncService.markSyncFailure(error.toString());
@@ -195,9 +195,16 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Stream<List<StudyNoteEntity>> watchNotes(String userId) {
-    return _database.watchNotes(userId).map(
-      (items) => items.map(_noteFromRow).toList(),
-    );
+    return _database
+        .watchNotes(userId)
+        .map((items) => items.map(_noteFromRow).toList());
+  }
+
+  @override
+  Stream<List<FlashcardEntity>> watchFlashcards(String userId) {
+    return _database
+        .watchFlashcards(userId)
+        .map((items) => items.map(_flashcardFromRow).toList());
   }
 
   @override
@@ -365,10 +372,9 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> saveStudySession(StudySessionEntity session) async {
-    final previous =
-        await (_database.select(_database.studySessionsTable)
-              ..where((tbl) => tbl.id.equals(session.id)))
-            .getSingleOrNull();
+    final previous = await (_database.select(
+      _database.studySessionsTable,
+    )..where((tbl) => tbl.id.equals(session.id))).getSingleOrNull();
     final model = StudySessionModelMapper.fromEntity(session);
     await _database.upsertSession(model, pending: true);
     await _database.queueUpsert(
@@ -388,10 +394,9 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteStudySession(String sessionId) async {
-    final existing =
-        await (_database.select(_database.studySessionsTable)
-              ..where((tbl) => tbl.id.equals(sessionId)))
-            .getSingleOrNull();
+    final existing = await (_database.select(
+      _database.studySessionsTable,
+    )..where((tbl) => tbl.id.equals(sessionId))).getSingleOrNull();
     if (existing == null) return;
 
     await _database.deleteSessionById(sessionId);
@@ -422,10 +427,9 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteTask(String taskId) async {
-    final existing =
-        await (_database.select(_database.tasksTable)
-              ..where((tbl) => tbl.id.equals(taskId)))
-            .getSingleOrNull();
+    final existing = await (_database.select(
+      _database.tasksTable,
+    )..where((tbl) => tbl.id.equals(taskId))).getSingleOrNull();
     await _database.deleteTaskById(taskId);
     await _database.queueDelete(
       id: 'tasks-$taskId',
@@ -478,10 +482,9 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteReview(String reviewId) async {
-    final existing =
-        await (_database.select(_database.reviewsTable)
-              ..where((tbl) => tbl.id.equals(reviewId)))
-            .getSingleOrNull();
+    final existing = await (_database.select(
+      _database.reviewsTable,
+    )..where((tbl) => tbl.id.equals(reviewId))).getSingleOrNull();
     await _database.deleteReviewById(reviewId);
     await _database.queueDelete(
       id: 'reviews-$reviewId',
@@ -519,10 +522,9 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteProjectStep(String stepId) async {
-    final existing =
-        await (_database.select(_database.projectStepsTable)
-              ..where((tbl) => tbl.id.equals(stepId)))
-            .getSingleOrNull();
+    final existing = await (_database.select(
+      _database.projectStepsTable,
+    )..where((tbl) => tbl.id.equals(stepId))).getSingleOrNull();
     if (existing == null) return;
 
     await _database.deleteProjectStepById(stepId);
@@ -536,14 +538,12 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteProject(String projectId) async {
-    final existing =
-        await (_database.select(_database.projectsTable)
-              ..where((tbl) => tbl.id.equals(projectId)))
-            .getSingleOrNull();
-    final steps =
-        await (_database.select(_database.projectStepsTable)
-              ..where((tbl) => tbl.projectId.equals(projectId)))
-            .get();
+    final existing = await (_database.select(
+      _database.projectsTable,
+    )..where((tbl) => tbl.id.equals(projectId))).getSingleOrNull();
+    final steps = await (_database.select(
+      _database.projectStepsTable,
+    )..where((tbl) => tbl.projectId.equals(projectId))).get();
     await _database.deleteProjectById(projectId);
     for (final step in steps) {
       await _database.queueDelete(
@@ -594,15 +594,41 @@ class StudyRepositoryImpl implements StudyRepository {
 
   @override
   Future<void> deleteNote(String noteId) async {
-    final existing =
-        await (_database.select(_database.studyNotesTable)
-              ..where((tbl) => tbl.id.equals(noteId)))
-            .getSingleOrNull();
+    final existing = await (_database.select(
+      _database.studyNotesTable,
+    )..where((tbl) => tbl.id.equals(noteId))).getSingleOrNull();
     await _database.deleteNoteById(noteId);
     await _database.queueDelete(
       id: 'study_notes-$noteId',
       tableName: 'study_notes',
       recordId: noteId,
+    );
+    await _syncIfPossible(existing?.userId);
+  }
+
+  @override
+  Future<void> saveFlashcard(FlashcardEntity flashcard) async {
+    final model = FlashcardModelMapper.fromEntity(flashcard);
+    await _database.upsertFlashcard(model, pending: true);
+    await _database.queueUpsert(
+      id: 'flashcards-${flashcard.id}',
+      tableName: 'flashcards',
+      recordId: flashcard.id,
+      payload: model.toJson(),
+    );
+    await sync(flashcard.userId);
+  }
+
+  @override
+  Future<void> deleteFlashcard(String flashcardId) async {
+    final existing = await (_database.select(
+      _database.flashcardsTable,
+    )..where((tbl) => tbl.id.equals(flashcardId))).getSingleOrNull();
+    await _database.deleteFlashcardById(flashcardId);
+    await _database.queueDelete(
+      id: 'flashcards-$flashcardId',
+      tableName: 'flashcards',
+      recordId: flashcardId,
     );
     await _syncIfPossible(existing?.userId);
   }
@@ -704,8 +730,8 @@ class StudyRepositoryImpl implements StudyRepository {
     final lastStudiedAt = sessions.isEmpty
         ? null
         : sessions
-            .map((item) => item.endTime)
-            .reduce((a, b) => a.isAfter(b) ? a : b);
+              .map((item) => item.endTime)
+              .reduce((a, b) => a.isAfter(b) ? a : b);
     final progressPercent = (sessions.length * 8).clamp(0, 100).toDouble();
     final updated = UserSkillProgressEntity(
       id: current?.id ?? _uuid.v4(),
@@ -933,6 +959,25 @@ StudyNoteEntity _noteFromRow(StudyNotesTableData row) => StudyNoteEntity(
   folderName: row.folderName,
   title: row.title,
   content: row.content,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+);
+
+FlashcardEntity _flashcardFromRow(FlashcardsTableData row) => FlashcardEntity(
+  id: row.id,
+  userId: row.userId,
+  deckName: row.deckName,
+  question: row.question,
+  answer: row.answer,
+  trackId: row.trackId,
+  moduleId: row.moduleId,
+  projectId: row.projectId,
+  dueAt: row.dueAt,
+  lastReviewedAt: row.lastReviewedAt,
+  reviewCount: row.reviewCount,
+  correctStreak: row.correctStreak,
+  easeFactor: row.easeFactor,
+  intervalDays: row.intervalDays,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 );

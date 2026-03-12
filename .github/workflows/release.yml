@@ -21,6 +21,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $versionLine = Get-Content ".\pubspec.yaml" |
+            Where-Object { $_ -match '^version:\s*([^\s]+)$' } |
+            Select-Object -First 1
+
+          if (-not $versionLine) {
+            throw "Nao foi possivel encontrar a versao no pubspec.yaml."
+          }
+
+          $rawVersion = (($versionLine -split ':\s*', 2)[1]).Trim()
+          if ($rawVersion -notmatch '^(?<buildName>\d+\.\d+\.\d+)\+(?<buildNumber>\d+)$') {
+            throw "A versao '$rawVersion' nao esta no formato esperado buildName+buildNumber."
+          }
+
+          $expectedTag = "v$($Matches.buildName)"
+          if ("${{ github.ref_name }}" -ne $expectedTag) {
+            throw "Tag invalida. Esperado: $expectedTag. Recebido: ${{ github.ref_name }}."
+          }
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:

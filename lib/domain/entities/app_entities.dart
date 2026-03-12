@@ -197,6 +197,28 @@ abstract class StudyNoteEntity with _$StudyNoteEntity {
 }
 
 @freezed
+abstract class FlashcardEntity with _$FlashcardEntity {
+  const factory FlashcardEntity({
+    required String id,
+    required String userId,
+    required String deckName,
+    required String question,
+    required String answer,
+    String? trackId,
+    String? moduleId,
+    String? projectId,
+    required DateTime dueAt,
+    DateTime? lastReviewedAt,
+    required int reviewCount,
+    required int correctStreak,
+    required double easeFactor,
+    required int intervalDays,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _FlashcardEntity;
+}
+
+@freezed
 abstract class AppSettingsEntity with _$AppSettingsEntity {
   const factory AppSettingsEntity({
     required String id,

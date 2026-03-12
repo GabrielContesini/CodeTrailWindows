@@ -247,6 +247,32 @@ abstract class StudyNoteModel with _$StudyNoteModel {
 }
 
 @freezed
+abstract class FlashcardModel with _$FlashcardModel {
+  @JsonSerializable(fieldRename: FieldRename.snake)
+  const factory FlashcardModel({
+    required String id,
+    required String userId,
+    required String deckName,
+    required String question,
+    required String answer,
+    String? trackId,
+    String? moduleId,
+    String? projectId,
+    required DateTime dueAt,
+    DateTime? lastReviewedAt,
+    required int reviewCount,
+    required int correctStreak,
+    required double easeFactor,
+    required int intervalDays,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _FlashcardModel;
+
+  factory FlashcardModel.fromJson(Map<String, dynamic> json) =>
+      _$FlashcardModelFromJson(json);
+}
+
+@freezed
 abstract class AppSettingsModel with _$AppSettingsModel {
   @JsonSerializable(fieldRename: FieldRename.snake)
   const factory AppSettingsModel({
@@ -603,6 +629,46 @@ extension StudyNoteModelMapper on StudyNoteModel {
   );
 }
 
+extension FlashcardModelMapper on FlashcardModel {
+  FlashcardEntity toEntity() => FlashcardEntity(
+    id: id,
+    userId: userId,
+    deckName: deckName,
+    question: question,
+    answer: answer,
+    trackId: trackId,
+    moduleId: moduleId,
+    projectId: projectId,
+    dueAt: dueAt,
+    lastReviewedAt: lastReviewedAt,
+    reviewCount: reviewCount,
+    correctStreak: correctStreak,
+    easeFactor: easeFactor,
+    intervalDays: intervalDays,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
+
+  static FlashcardModel fromEntity(FlashcardEntity entity) => FlashcardModel(
+    id: entity.id,
+    userId: entity.userId,
+    deckName: entity.deckName,
+    question: entity.question,
+    answer: entity.answer,
+    trackId: entity.trackId,
+    moduleId: entity.moduleId,
+    projectId: entity.projectId,
+    dueAt: entity.dueAt,
+    lastReviewedAt: entity.lastReviewedAt,
+    reviewCount: entity.reviewCount,
+    correctStreak: entity.correctStreak,
+    easeFactor: entity.easeFactor,
+    intervalDays: entity.intervalDays,
+    createdAt: entity.createdAt,
+    updatedAt: entity.updatedAt,
+  );
+}
+
 extension AppSettingsModelMapper on AppSettingsModel {
   AppSettingsEntity toEntity() => AppSettingsEntity(
     id: id,
@@ -640,7 +706,9 @@ class RemoteSyncBundle {
     required this.projects,
     required this.projectSteps,
     required this.notes,
+    required this.flashcards,
     required this.settings,
+    this.flashcardsAvailable = true,
   });
 
   final List<ProfileModel> profiles;
@@ -655,5 +723,7 @@ class RemoteSyncBundle {
   final List<ProjectModel> projects;
   final List<ProjectStepModel> projectSteps;
   final List<StudyNoteModel> notes;
+  final List<FlashcardModel> flashcards;
   final List<AppSettingsModel> settings;
+  final bool flashcardsAvailable;
 }
