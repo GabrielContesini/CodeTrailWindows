@@ -3722,6 +3722,290 @@ as DateTime,
 }
 
 /// @nodoc
+mixin _$MindMapEntity {
+
+ String get id; String get userId; String get folderName; String get title; String get contentJson; String? get trackId; String? get moduleId; String? get projectId; DateTime get createdAt; DateTime get updatedAt;
+/// Create a copy of MindMapEntity
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MindMapEntityCopyWith<MindMapEntity> get copyWith => _$MindMapEntityCopyWithImpl<MindMapEntity>(this as MindMapEntity, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MindMapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.folderName, folderName) || other.folderName == folderName)&&(identical(other.title, title) || other.title == title)&&(identical(other.contentJson, contentJson) || other.contentJson == contentJson)&&(identical(other.trackId, trackId) || other.trackId == trackId)&&(identical(other.moduleId, moduleId) || other.moduleId == moduleId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,userId,folderName,title,contentJson,trackId,moduleId,projectId,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'MindMapEntity(id: $id, userId: $userId, folderName: $folderName, title: $title, contentJson: $contentJson, trackId: $trackId, moduleId: $moduleId, projectId: $projectId, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $MindMapEntityCopyWith<$Res>  {
+  factory $MindMapEntityCopyWith(MindMapEntity value, $Res Function(MindMapEntity) _then) = _$MindMapEntityCopyWithImpl;
+@useResult
+$Res call({
+ String id, String userId, String folderName, String title, String contentJson, String? trackId, String? moduleId, String? projectId, DateTime createdAt, DateTime updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$MindMapEntityCopyWithImpl<$Res>
+    implements $MindMapEntityCopyWith<$Res> {
+  _$MindMapEntityCopyWithImpl(this._self, this._then);
+
+  final MindMapEntity _self;
+  final $Res Function(MindMapEntity) _then;
+
+/// Create a copy of MindMapEntity
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? folderName = null,Object? title = null,Object? contentJson = null,Object? trackId = freezed,Object? moduleId = freezed,Object? projectId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,folderName: null == folderName ? _self.folderName : folderName // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,contentJson: null == contentJson ? _self.contentJson : contentJson // ignore: cast_nullable_to_non_nullable
+as String,trackId: freezed == trackId ? _self.trackId : trackId // ignore: cast_nullable_to_non_nullable
+as String?,moduleId: freezed == moduleId ? _self.moduleId : moduleId // ignore: cast_nullable_to_non_nullable
+as String?,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [MindMapEntity].
+extension MindMapEntityPatterns on MindMapEntity {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MindMapEntity value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MindMapEntity() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MindMapEntity value)  $default,){
+final _that = this;
+switch (_that) {
+case _MindMapEntity():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MindMapEntity value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MindMapEntity() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  String folderName,  String title,  String contentJson,  String? trackId,  String? moduleId,  String? projectId,  DateTime createdAt,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MindMapEntity() when $default != null:
+return $default(_that.id,_that.userId,_that.folderName,_that.title,_that.contentJson,_that.trackId,_that.moduleId,_that.projectId,_that.createdAt,_that.updatedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  String folderName,  String title,  String contentJson,  String? trackId,  String? moduleId,  String? projectId,  DateTime createdAt,  DateTime updatedAt)  $default,) {final _that = this;
+switch (_that) {
+case _MindMapEntity():
+return $default(_that.id,_that.userId,_that.folderName,_that.title,_that.contentJson,_that.trackId,_that.moduleId,_that.projectId,_that.createdAt,_that.updatedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  String folderName,  String title,  String contentJson,  String? trackId,  String? moduleId,  String? projectId,  DateTime createdAt,  DateTime updatedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _MindMapEntity() when $default != null:
+return $default(_that.id,_that.userId,_that.folderName,_that.title,_that.contentJson,_that.trackId,_that.moduleId,_that.projectId,_that.createdAt,_that.updatedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _MindMapEntity implements MindMapEntity {
+  const _MindMapEntity({required this.id, required this.userId, required this.folderName, required this.title, required this.contentJson, this.trackId, this.moduleId, this.projectId, required this.createdAt, required this.updatedAt});
+  
+
+@override final  String id;
+@override final  String userId;
+@override final  String folderName;
+@override final  String title;
+@override final  String contentJson;
+@override final  String? trackId;
+@override final  String? moduleId;
+@override final  String? projectId;
+@override final  DateTime createdAt;
+@override final  DateTime updatedAt;
+
+/// Create a copy of MindMapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MindMapEntityCopyWith<_MindMapEntity> get copyWith => __$MindMapEntityCopyWithImpl<_MindMapEntity>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MindMapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.folderName, folderName) || other.folderName == folderName)&&(identical(other.title, title) || other.title == title)&&(identical(other.contentJson, contentJson) || other.contentJson == contentJson)&&(identical(other.trackId, trackId) || other.trackId == trackId)&&(identical(other.moduleId, moduleId) || other.moduleId == moduleId)&&(identical(other.projectId, projectId) || other.projectId == projectId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,id,userId,folderName,title,contentJson,trackId,moduleId,projectId,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'MindMapEntity(id: $id, userId: $userId, folderName: $folderName, title: $title, contentJson: $contentJson, trackId: $trackId, moduleId: $moduleId, projectId: $projectId, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MindMapEntityCopyWith<$Res> implements $MindMapEntityCopyWith<$Res> {
+  factory _$MindMapEntityCopyWith(_MindMapEntity value, $Res Function(_MindMapEntity) _then) = __$MindMapEntityCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String userId, String folderName, String title, String contentJson, String? trackId, String? moduleId, String? projectId, DateTime createdAt, DateTime updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$MindMapEntityCopyWithImpl<$Res>
+    implements _$MindMapEntityCopyWith<$Res> {
+  __$MindMapEntityCopyWithImpl(this._self, this._then);
+
+  final _MindMapEntity _self;
+  final $Res Function(_MindMapEntity) _then;
+
+/// Create a copy of MindMapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? folderName = null,Object? title = null,Object? contentJson = null,Object? trackId = freezed,Object? moduleId = freezed,Object? projectId = freezed,Object? createdAt = null,Object? updatedAt = null,}) {
+  return _then(_MindMapEntity(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,folderName: null == folderName ? _self.folderName : folderName // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,contentJson: null == contentJson ? _self.contentJson : contentJson // ignore: cast_nullable_to_non_nullable
+as String,trackId: freezed == trackId ? _self.trackId : trackId // ignore: cast_nullable_to_non_nullable
+as String?,moduleId: freezed == moduleId ? _self.moduleId : moduleId // ignore: cast_nullable_to_non_nullable
+as String?,projectId: freezed == projectId ? _self.projectId : projectId // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$AppSettingsEntity {
 
  String get id; String get userId; ThemePreference get themePreference; bool get notificationsEnabled; int? get dailyReminderHour; DateTime get createdAt; DateTime get updatedAt;

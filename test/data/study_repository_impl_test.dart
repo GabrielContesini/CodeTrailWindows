@@ -237,6 +237,10 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
           .where((row) => row['user_id'] == userId)
           .map(FlashcardModel.fromJson)
           .toList(),
+      mindMaps: table('mind_maps')
+          .where((row) => row['user_id'] == userId)
+          .map(MindMapModel.fromJson)
+          .toList(),
       settings: table('app_settings')
           .where((row) => row['user_id'] == userId)
           .map(AppSettingsModel.fromJson)

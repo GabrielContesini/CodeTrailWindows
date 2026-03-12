@@ -10181,6 +10181,675 @@ class FlashcardsTableCompanion extends UpdateCompanion<FlashcardsTableData> {
   }
 }
 
+class $MindMapsTableTable extends MindMapsTable
+    with TableInfo<$MindMapsTableTable, MindMapsTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MindMapsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pendingSyncMeta = const VerificationMeta(
+    'pendingSync',
+  );
+  @override
+  late final GeneratedColumn<bool> pendingSync = GeneratedColumn<bool>(
+    'pending_sync',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pending_sync" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _folderNameMeta = const VerificationMeta(
+    'folderName',
+  );
+  @override
+  late final GeneratedColumn<String> folderName = GeneratedColumn<String>(
+    'folder_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentJsonMeta = const VerificationMeta(
+    'contentJson',
+  );
+  @override
+  late final GeneratedColumn<String> contentJson = GeneratedColumn<String>(
+    'content_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trackIdMeta = const VerificationMeta(
+    'trackId',
+  );
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+    'track_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _moduleIdMeta = const VerificationMeta(
+    'moduleId',
+  );
+  @override
+  late final GeneratedColumn<String> moduleId = GeneratedColumn<String>(
+    'module_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<String> projectId = GeneratedColumn<String>(
+    'project_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    createdAt,
+    updatedAt,
+    pendingSync,
+    id,
+    userId,
+    folderName,
+    title,
+    contentJson,
+    trackId,
+    moduleId,
+    projectId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mind_maps';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MindMapsTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('pending_sync')) {
+      context.handle(
+        _pendingSyncMeta,
+        pendingSync.isAcceptableOrUnknown(
+          data['pending_sync']!,
+          _pendingSyncMeta,
+        ),
+      );
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('folder_name')) {
+      context.handle(
+        _folderNameMeta,
+        folderName.isAcceptableOrUnknown(data['folder_name']!, _folderNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_folderNameMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('content_json')) {
+      context.handle(
+        _contentJsonMeta,
+        contentJson.isAcceptableOrUnknown(
+          data['content_json']!,
+          _contentJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contentJsonMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(
+        _trackIdMeta,
+        trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta),
+      );
+    }
+    if (data.containsKey('module_id')) {
+      context.handle(
+        _moduleIdMeta,
+        moduleId.isAcceptableOrUnknown(data['module_id']!, _moduleIdMeta),
+      );
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MindMapsTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MindMapsTableData(
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      pendingSync: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pending_sync'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      folderName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}folder_name'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      contentJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_json'],
+      )!,
+      trackId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}track_id'],
+      ),
+      moduleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}module_id'],
+      ),
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project_id'],
+      ),
+    );
+  }
+
+  @override
+  $MindMapsTableTable createAlias(String alias) {
+    return $MindMapsTableTable(attachedDatabase, alias);
+  }
+}
+
+class MindMapsTableData extends DataClass
+    implements Insertable<MindMapsTableData> {
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool pendingSync;
+  final String id;
+  final String userId;
+  final String folderName;
+  final String title;
+  final String contentJson;
+  final String? trackId;
+  final String? moduleId;
+  final String? projectId;
+  const MindMapsTableData({
+    required this.createdAt,
+    required this.updatedAt,
+    required this.pendingSync,
+    required this.id,
+    required this.userId,
+    required this.folderName,
+    required this.title,
+    required this.contentJson,
+    this.trackId,
+    this.moduleId,
+    this.projectId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    map['pending_sync'] = Variable<bool>(pendingSync);
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['folder_name'] = Variable<String>(folderName);
+    map['title'] = Variable<String>(title);
+    map['content_json'] = Variable<String>(contentJson);
+    if (!nullToAbsent || trackId != null) {
+      map['track_id'] = Variable<String>(trackId);
+    }
+    if (!nullToAbsent || moduleId != null) {
+      map['module_id'] = Variable<String>(moduleId);
+    }
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<String>(projectId);
+    }
+    return map;
+  }
+
+  MindMapsTableCompanion toCompanion(bool nullToAbsent) {
+    return MindMapsTableCompanion(
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      pendingSync: Value(pendingSync),
+      id: Value(id),
+      userId: Value(userId),
+      folderName: Value(folderName),
+      title: Value(title),
+      contentJson: Value(contentJson),
+      trackId: trackId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trackId),
+      moduleId: moduleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(moduleId),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
+    );
+  }
+
+  factory MindMapsTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MindMapsTableData(
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      pendingSync: serializer.fromJson<bool>(json['pendingSync']),
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      folderName: serializer.fromJson<String>(json['folderName']),
+      title: serializer.fromJson<String>(json['title']),
+      contentJson: serializer.fromJson<String>(json['contentJson']),
+      trackId: serializer.fromJson<String?>(json['trackId']),
+      moduleId: serializer.fromJson<String?>(json['moduleId']),
+      projectId: serializer.fromJson<String?>(json['projectId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'pendingSync': serializer.toJson<bool>(pendingSync),
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'folderName': serializer.toJson<String>(folderName),
+      'title': serializer.toJson<String>(title),
+      'contentJson': serializer.toJson<String>(contentJson),
+      'trackId': serializer.toJson<String?>(trackId),
+      'moduleId': serializer.toJson<String?>(moduleId),
+      'projectId': serializer.toJson<String?>(projectId),
+    };
+  }
+
+  MindMapsTableData copyWith({
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? pendingSync,
+    String? id,
+    String? userId,
+    String? folderName,
+    String? title,
+    String? contentJson,
+    Value<String?> trackId = const Value.absent(),
+    Value<String?> moduleId = const Value.absent(),
+    Value<String?> projectId = const Value.absent(),
+  }) => MindMapsTableData(
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    pendingSync: pendingSync ?? this.pendingSync,
+    id: id ?? this.id,
+    userId: userId ?? this.userId,
+    folderName: folderName ?? this.folderName,
+    title: title ?? this.title,
+    contentJson: contentJson ?? this.contentJson,
+    trackId: trackId.present ? trackId.value : this.trackId,
+    moduleId: moduleId.present ? moduleId.value : this.moduleId,
+    projectId: projectId.present ? projectId.value : this.projectId,
+  );
+  MindMapsTableData copyWithCompanion(MindMapsTableCompanion data) {
+    return MindMapsTableData(
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      pendingSync: data.pendingSync.present
+          ? data.pendingSync.value
+          : this.pendingSync,
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      folderName: data.folderName.present
+          ? data.folderName.value
+          : this.folderName,
+      title: data.title.present ? data.title.value : this.title,
+      contentJson: data.contentJson.present
+          ? data.contentJson.value
+          : this.contentJson,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      moduleId: data.moduleId.present ? data.moduleId.value : this.moduleId,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MindMapsTableData(')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('pendingSync: $pendingSync, ')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('folderName: $folderName, ')
+          ..write('title: $title, ')
+          ..write('contentJson: $contentJson, ')
+          ..write('trackId: $trackId, ')
+          ..write('moduleId: $moduleId, ')
+          ..write('projectId: $projectId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    createdAt,
+    updatedAt,
+    pendingSync,
+    id,
+    userId,
+    folderName,
+    title,
+    contentJson,
+    trackId,
+    moduleId,
+    projectId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MindMapsTableData &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.pendingSync == this.pendingSync &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.folderName == this.folderName &&
+          other.title == this.title &&
+          other.contentJson == this.contentJson &&
+          other.trackId == this.trackId &&
+          other.moduleId == this.moduleId &&
+          other.projectId == this.projectId);
+}
+
+class MindMapsTableCompanion extends UpdateCompanion<MindMapsTableData> {
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<bool> pendingSync;
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> folderName;
+  final Value<String> title;
+  final Value<String> contentJson;
+  final Value<String?> trackId;
+  final Value<String?> moduleId;
+  final Value<String?> projectId;
+  final Value<int> rowid;
+  const MindMapsTableCompanion({
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.pendingSync = const Value.absent(),
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.folderName = const Value.absent(),
+    this.title = const Value.absent(),
+    this.contentJson = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.moduleId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MindMapsTableCompanion.insert({
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.pendingSync = const Value.absent(),
+    required String id,
+    required String userId,
+    required String folderName,
+    required String title,
+    required String contentJson,
+    this.trackId = const Value.absent(),
+    this.moduleId = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       id = Value(id),
+       userId = Value(userId),
+       folderName = Value(folderName),
+       title = Value(title),
+       contentJson = Value(contentJson);
+  static Insertable<MindMapsTableData> custom({
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<bool>? pendingSync,
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? folderName,
+    Expression<String>? title,
+    Expression<String>? contentJson,
+    Expression<String>? trackId,
+    Expression<String>? moduleId,
+    Expression<String>? projectId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (pendingSync != null) 'pending_sync': pendingSync,
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (folderName != null) 'folder_name': folderName,
+      if (title != null) 'title': title,
+      if (contentJson != null) 'content_json': contentJson,
+      if (trackId != null) 'track_id': trackId,
+      if (moduleId != null) 'module_id': moduleId,
+      if (projectId != null) 'project_id': projectId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MindMapsTableCompanion copyWith({
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<bool>? pendingSync,
+    Value<String>? id,
+    Value<String>? userId,
+    Value<String>? folderName,
+    Value<String>? title,
+    Value<String>? contentJson,
+    Value<String?>? trackId,
+    Value<String?>? moduleId,
+    Value<String?>? projectId,
+    Value<int>? rowid,
+  }) {
+    return MindMapsTableCompanion(
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      pendingSync: pendingSync ?? this.pendingSync,
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      folderName: folderName ?? this.folderName,
+      title: title ?? this.title,
+      contentJson: contentJson ?? this.contentJson,
+      trackId: trackId ?? this.trackId,
+      moduleId: moduleId ?? this.moduleId,
+      projectId: projectId ?? this.projectId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (pendingSync.present) {
+      map['pending_sync'] = Variable<bool>(pendingSync.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (folderName.present) {
+      map['folder_name'] = Variable<String>(folderName.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (contentJson.present) {
+      map['content_json'] = Variable<String>(contentJson.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (moduleId.present) {
+      map['module_id'] = Variable<String>(moduleId.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<String>(projectId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MindMapsTableCompanion(')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('pendingSync: $pendingSync, ')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('folderName: $folderName, ')
+          ..write('title: $title, ')
+          ..write('contentJson: $contentJson, ')
+          ..write('trackId: $trackId, ')
+          ..write('moduleId: $moduleId, ')
+          ..write('projectId: $projectId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -10213,6 +10882,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FlashcardsTableTable flashcardsTable = $FlashcardsTableTable(
     this,
   );
+  late final $MindMapsTableTable mindMapsTable = $MindMapsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10233,6 +10903,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     appSettingsTable,
     studyNotesTable,
     flashcardsTable,
+    mindMapsTable,
   ];
 }
 
@@ -15203,6 +15874,330 @@ typedef $$FlashcardsTableTableProcessedTableManager =
       FlashcardsTableData,
       PrefetchHooks Function()
     >;
+typedef $$MindMapsTableTableCreateCompanionBuilder =
+    MindMapsTableCompanion Function({
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<bool> pendingSync,
+      required String id,
+      required String userId,
+      required String folderName,
+      required String title,
+      required String contentJson,
+      Value<String?> trackId,
+      Value<String?> moduleId,
+      Value<String?> projectId,
+      Value<int> rowid,
+    });
+typedef $$MindMapsTableTableUpdateCompanionBuilder =
+    MindMapsTableCompanion Function({
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<bool> pendingSync,
+      Value<String> id,
+      Value<String> userId,
+      Value<String> folderName,
+      Value<String> title,
+      Value<String> contentJson,
+      Value<String?> trackId,
+      Value<String?> moduleId,
+      Value<String?> projectId,
+      Value<int> rowid,
+    });
+
+class $$MindMapsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MindMapsTableTable> {
+  $$MindMapsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get folderName => $composableBuilder(
+    column: $table.folderName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentJson => $composableBuilder(
+    column: $table.contentJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get moduleId => $composableBuilder(
+    column: $table.moduleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MindMapsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MindMapsTableTable> {
+  $$MindMapsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get folderName => $composableBuilder(
+    column: $table.folderName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentJson => $composableBuilder(
+    column: $table.contentJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+    column: $table.trackId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get moduleId => $composableBuilder(
+    column: $table.moduleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get projectId => $composableBuilder(
+    column: $table.projectId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MindMapsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MindMapsTableTable> {
+  $$MindMapsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get pendingSync => $composableBuilder(
+    column: $table.pendingSync,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get folderName => $composableBuilder(
+    column: $table.folderName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get contentJson => $composableBuilder(
+    column: $table.contentJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get moduleId =>
+      $composableBuilder(column: $table.moduleId, builder: (column) => column);
+
+  GeneratedColumn<String> get projectId =>
+      $composableBuilder(column: $table.projectId, builder: (column) => column);
+}
+
+class $$MindMapsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MindMapsTableTable,
+          MindMapsTableData,
+          $$MindMapsTableTableFilterComposer,
+          $$MindMapsTableTableOrderingComposer,
+          $$MindMapsTableTableAnnotationComposer,
+          $$MindMapsTableTableCreateCompanionBuilder,
+          $$MindMapsTableTableUpdateCompanionBuilder,
+          (
+            MindMapsTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $MindMapsTableTable,
+              MindMapsTableData
+            >,
+          ),
+          MindMapsTableData,
+          PrefetchHooks Function()
+        > {
+  $$MindMapsTableTableTableManager(_$AppDatabase db, $MindMapsTableTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MindMapsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MindMapsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MindMapsTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<bool> pendingSync = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> folderName = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> contentJson = const Value.absent(),
+                Value<String?> trackId = const Value.absent(),
+                Value<String?> moduleId = const Value.absent(),
+                Value<String?> projectId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MindMapsTableCompanion(
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                pendingSync: pendingSync,
+                id: id,
+                userId: userId,
+                folderName: folderName,
+                title: title,
+                contentJson: contentJson,
+                trackId: trackId,
+                moduleId: moduleId,
+                projectId: projectId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<bool> pendingSync = const Value.absent(),
+                required String id,
+                required String userId,
+                required String folderName,
+                required String title,
+                required String contentJson,
+                Value<String?> trackId = const Value.absent(),
+                Value<String?> moduleId = const Value.absent(),
+                Value<String?> projectId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MindMapsTableCompanion.insert(
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                pendingSync: pendingSync,
+                id: id,
+                userId: userId,
+                folderName: folderName,
+                title: title,
+                contentJson: contentJson,
+                trackId: trackId,
+                moduleId: moduleId,
+                projectId: projectId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MindMapsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MindMapsTableTable,
+      MindMapsTableData,
+      $$MindMapsTableTableFilterComposer,
+      $$MindMapsTableTableOrderingComposer,
+      $$MindMapsTableTableAnnotationComposer,
+      $$MindMapsTableTableCreateCompanionBuilder,
+      $$MindMapsTableTableUpdateCompanionBuilder,
+      (
+        MindMapsTableData,
+        BaseReferences<_$AppDatabase, $MindMapsTableTable, MindMapsTableData>,
+      ),
+      MindMapsTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -15240,4 +16235,6 @@ class $AppDatabaseManager {
       $$StudyNotesTableTableTableManager(_db, _db.studyNotesTable);
   $$FlashcardsTableTableTableManager get flashcardsTable =>
       $$FlashcardsTableTableTableManager(_db, _db.flashcardsTable);
+  $$MindMapsTableTableTableManager get mindMapsTable =>
+      $$MindMapsTableTableTableManager(_db, _db.mindMapsTable);
 }

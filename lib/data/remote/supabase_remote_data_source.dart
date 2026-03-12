@@ -65,6 +65,17 @@ class SupabaseRemoteDataSource {
       flashcardsAvailable = false;
       flashcardRows = <dynamic>[];
     }
+    var mindMapsAvailable = true;
+    List<dynamic> mindMapRows = <dynamic>[];
+    try {
+      mindMapRows = await _client
+          .from('mind_maps')
+          .select()
+          .eq('user_id', userId);
+    } catch (_) {
+      mindMapsAvailable = false;
+      mindMapRows = <dynamic>[];
+    }
     List<dynamic> noteRows = <dynamic>[];
     try {
       noteRows = await _client
@@ -148,11 +159,16 @@ class SupabaseRemoteDataSource {
           .cast<Map<String, dynamic>>()
           .map(FlashcardModel.fromJson)
           .toList(),
+      mindMaps: mindMapRows
+          .cast<Map<String, dynamic>>()
+          .map(MindMapModel.fromJson)
+          .toList(),
       settings: settingRows
           .cast<Map<String, dynamic>>()
           .map(AppSettingsModel.fromJson)
           .toList(),
       flashcardsAvailable: flashcardsAvailable,
+      mindMapsAvailable: mindMapsAvailable,
     );
   }
 }

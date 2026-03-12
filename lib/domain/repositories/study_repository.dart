@@ -16,6 +16,7 @@ abstract class StudyRepository {
   Stream<List<ProjectBundle>> watchProjects(String userId);
   Stream<List<StudyNoteEntity>> watchNotes(String userId);
   Stream<List<FlashcardEntity>> watchFlashcards(String userId);
+  Stream<List<MindMapEntity>> watchMindMaps(String userId);
   Stream<List<TrackBlueprint>> watchTracks(String userId);
 
   Future<List<TrackBlueprint>> getTracks(String userId);
@@ -38,6 +39,8 @@ abstract class StudyRepository {
   Future<void> deleteNote(String noteId);
   Future<void> saveFlashcard(FlashcardEntity flashcard);
   Future<void> deleteFlashcard(String flashcardId);
+  Future<void> saveMindMap(MindMapEntity mindMap);
+  Future<void> deleteMindMap(String mindMapId);
   Future<void> saveProfile(ProfileEntity profile);
   Future<void> saveGoal(UserGoalEntity goal);
   Future<void> saveSettings(AppSettingsEntity settings);

@@ -27,6 +27,8 @@ class IconMapper {
         return Icons.note_alt_rounded;
       case 'cards':
         return Icons.style_rounded;
+      case 'mindmap':
+        return Icons.account_tree_rounded;
       default:
         return Icons.auto_awesome_rounded;
     }

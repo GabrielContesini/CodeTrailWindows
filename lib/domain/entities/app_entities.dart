@@ -219,6 +219,22 @@ abstract class FlashcardEntity with _$FlashcardEntity {
 }
 
 @freezed
+abstract class MindMapEntity with _$MindMapEntity {
+  const factory MindMapEntity({
+    required String id,
+    required String userId,
+    required String folderName,
+    required String title,
+    required String contentJson,
+    String? trackId,
+    String? moduleId,
+    String? projectId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _MindMapEntity;
+}
+
+@freezed
 abstract class AppSettingsEntity with _$AppSettingsEntity {
   const factory AppSettingsEntity({
     required String id,

@@ -279,6 +279,23 @@ class FlashcardsTable extends Table with AuditColumns {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class MindMapsTable extends Table with AuditColumns {
+  @override
+  String get tableName => 'mind_maps';
+
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get folderName => text()();
+  TextColumn get title => text()();
+  TextColumn get contentJson => text()();
+  TextColumn get trackId => text().nullable()();
+  TextColumn get moduleId => text().nullable()();
+  TextColumn get projectId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class PendingSyncQueueRecord {
   const PendingSyncQueueRecord({
     required this.id,
@@ -320,6 +337,7 @@ class PendingSyncQueueRecord {
     AppSettingsTable,
     StudyNotesTable,
     FlashcardsTable,
+    MindMapsTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -327,7 +345,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -338,6 +356,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.createTable(flashcardsTable);
+      }
+      if (from < 4) {
+        await m.createTable(mindMapsTable);
       }
     },
   );
@@ -379,6 +400,16 @@ class AppDatabase extends _$AppDatabase {
           ..where((tbl) => tbl.userId.equals(userId))
           ..orderBy([
             (tbl) => OrderingTerm.asc(tbl.dueAt),
+            (tbl) => OrderingTerm.desc(tbl.updatedAt),
+          ]))
+        .watch();
+  }
+
+  Stream<List<MindMapsTableData>> watchMindMaps(String userId) {
+    return (select(mindMapsTable)
+          ..where((tbl) => tbl.userId.equals(userId))
+          ..orderBy([
+            (tbl) => OrderingTerm.asc(tbl.folderName),
             (tbl) => OrderingTerm.desc(tbl.updatedAt),
           ]))
         .watch();
@@ -604,6 +635,11 @@ class AppDatabase extends _$AppDatabase {
           flashcardsTable,
         )..where((tbl) => tbl.userId.equals(userId))).go();
       }
+      if (bundle.mindMapsAvailable) {
+        await (delete(
+          mindMapsTable,
+        )..where((tbl) => tbl.userId.equals(userId))).go();
+      }
       await (delete(profilesTable)..where((tbl) => tbl.id.equals(userId))).go();
 
       await batch((batch) {
@@ -659,6 +695,14 @@ class AppDatabase extends _$AppDatabase {
           batch.insertAllOnConflictUpdate(
             flashcardsTable,
             bundle.flashcards
+                .map((item) => item.toCompanion(pending: false))
+                .toList(),
+          );
+        }
+        if (bundle.mindMapsAvailable) {
+          batch.insertAllOnConflictUpdate(
+            mindMapsTable,
+            bundle.mindMaps
                 .map((item) => item.toCompanion(pending: false))
                 .toList(),
           );
@@ -818,6 +862,18 @@ class AppDatabase extends _$AppDatabase {
     return (delete(
       flashcardsTable,
     )..where((tbl) => tbl.id.equals(flashcardId))).go();
+  }
+
+  Future<void> upsertMindMap(MindMapModel model, {bool pending = false}) {
+    return into(
+      mindMapsTable,
+    ).insertOnConflictUpdate(model.toCompanion(pending: pending));
+  }
+
+  Future<void> deleteMindMapById(String mindMapId) {
+    return (delete(
+      mindMapsTable,
+    )..where((tbl) => tbl.id.equals(mindMapId))).go();
   }
 
   Future<void> queueUpsert({
@@ -1157,6 +1213,24 @@ extension on FlashcardModel {
       correctStreak: Value(correctStreak),
       easeFactor: Value(easeFactor),
       intervalDays: Value(intervalDays),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      pendingSync: Value(pending),
+    );
+  }
+}
+
+extension on MindMapModel {
+  MindMapsTableCompanion toCompanion({bool pending = false}) {
+    return MindMapsTableCompanion.insert(
+      id: id,
+      userId: userId,
+      folderName: folderName,
+      title: title,
+      contentJson: contentJson,
+      trackId: Value(trackId),
+      moduleId: Value(moduleId),
+      projectId: Value(projectId),
       createdAt: createdAt,
       updatedAt: updatedAt,
       pendingSync: Value(pending),

@@ -191,6 +191,19 @@ create table if not exists public.flashcards (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.mind_maps (
+  id text primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  folder_name text not null default 'Geral',
+  title text not null,
+  content_json text not null default '{}',
+  track_id text references public.study_tracks(id) on delete set null,
+  module_id text references public.study_modules(id) on delete set null,
+  project_id text references public.projects(id) on delete set null,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.sync_queue (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -223,6 +236,7 @@ create index if not exists idx_projects_user_id_status on public.projects(user_i
 create index if not exists idx_project_steps_project_id on public.project_steps(project_id);
 create index if not exists idx_study_notes_user_id_folder_name on public.study_notes(user_id, folder_name);
 create index if not exists idx_flashcards_user_id_due_at on public.flashcards(user_id, due_at);
+create index if not exists idx_mind_maps_user_id_folder_name on public.mind_maps(user_id, folder_name);
 create index if not exists idx_sync_queue_user_id_created_at on public.sync_queue(user_id, created_at);
 create index if not exists idx_study_skills_track_id on public.study_skills(track_id, sort_order);
 create index if not exists idx_study_modules_track_id on public.study_modules(track_id, sort_order);
@@ -292,6 +306,11 @@ create trigger set_flashcards_updated_at
 before update on public.flashcards
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_mind_maps_updated_at on public.mind_maps;
+create trigger set_mind_maps_updated_at
+before update on public.mind_maps
+for each row execute function public.set_updated_at();
+
 drop trigger if exists set_sync_queue_updated_at on public.sync_queue;
 create trigger set_sync_queue_updated_at
 before update on public.sync_queue
@@ -339,6 +358,7 @@ alter table public.projects enable row level security;
 alter table public.project_steps enable row level security;
 alter table public.study_notes enable row level security;
 alter table public.flashcards enable row level security;
+alter table public.mind_maps enable row level security;
 alter table public.sync_queue enable row level security;
 alter table public.app_settings enable row level security;
 
@@ -466,6 +486,14 @@ with check (auth.uid() = user_id);
 drop policy if exists "flashcards_all_own" on public.flashcards;
 create policy "flashcards_all_own"
 on public.flashcards
+for all
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "mind_maps_all_own" on public.mind_maps;
+create policy "mind_maps_all_own"
+on public.mind_maps
 for all
 to authenticated
 using (auth.uid() = user_id)

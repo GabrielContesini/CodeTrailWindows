@@ -443,6 +443,34 @@ Map<String, dynamic> _$FlashcardModelToJson(_FlashcardModel instance) =>
       'updated_at': instance.updatedAt.toIso8601String(),
     };
 
+_MindMapModel _$MindMapModelFromJson(Map<String, dynamic> json) =>
+    _MindMapModel(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      folderName: json['folder_name'] as String,
+      title: json['title'] as String,
+      contentJson: json['content_json'] as String,
+      trackId: json['track_id'] as String?,
+      moduleId: json['module_id'] as String?,
+      projectId: json['project_id'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+    );
+
+Map<String, dynamic> _$MindMapModelToJson(_MindMapModel instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'user_id': instance.userId,
+      'folder_name': instance.folderName,
+      'title': instance.title,
+      'content_json': instance.contentJson,
+      'track_id': instance.trackId,
+      'module_id': instance.moduleId,
+      'project_id': instance.projectId,
+      'created_at': instance.createdAt.toIso8601String(),
+      'updated_at': instance.updatedAt.toIso8601String(),
+    };
+
 _AppSettingsModel _$AppSettingsModelFromJson(Map<String, dynamic> json) =>
     _AppSettingsModel(
       id: json['id'] as String,

@@ -208,6 +208,13 @@ class StudyRepositoryImpl implements StudyRepository {
   }
 
   @override
+  Stream<List<MindMapEntity>> watchMindMaps(String userId) {
+    return _database
+        .watchMindMaps(userId)
+        .map((items) => items.map(_mindMapFromRow).toList());
+  }
+
+  @override
   Stream<List<TrackBlueprint>> watchTracks(String userId) {
     return Rx.combineLatest4(
       _database.watchTracks(),
@@ -634,6 +641,33 @@ class StudyRepositoryImpl implements StudyRepository {
   }
 
   @override
+  Future<void> saveMindMap(MindMapEntity mindMap) async {
+    final model = MindMapModelMapper.fromEntity(mindMap);
+    await _database.upsertMindMap(model, pending: true);
+    await _database.queueUpsert(
+      id: 'mind_maps-${mindMap.id}',
+      tableName: 'mind_maps',
+      recordId: mindMap.id,
+      payload: model.toJson(),
+    );
+    await sync(mindMap.userId);
+  }
+
+  @override
+  Future<void> deleteMindMap(String mindMapId) async {
+    final existing = await (_database.select(
+      _database.mindMapsTable,
+    )..where((tbl) => tbl.id.equals(mindMapId))).getSingleOrNull();
+    await _database.deleteMindMapById(mindMapId);
+    await _database.queueDelete(
+      id: 'mind_maps-$mindMapId',
+      tableName: 'mind_maps',
+      recordId: mindMapId,
+    );
+    await _syncIfPossible(existing?.userId);
+  }
+
+  @override
   Future<void> saveProfile(ProfileEntity profile) async {
     final model = ProfileModelMapper.fromEntity(profile);
     await _database.upsertProfile(model, pending: true);
@@ -978,6 +1012,19 @@ FlashcardEntity _flashcardFromRow(FlashcardsTableData row) => FlashcardEntity(
   correctStreak: row.correctStreak,
   easeFactor: row.easeFactor,
   intervalDays: row.intervalDays,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+);
+
+MindMapEntity _mindMapFromRow(MindMapsTableData row) => MindMapEntity(
+  id: row.id,
+  userId: row.userId,
+  folderName: row.folderName,
+  title: row.title,
+  contentJson: row.contentJson,
+  trackId: row.trackId,
+  moduleId: row.moduleId,
+  projectId: row.projectId,
   createdAt: row.createdAt,
   updatedAt: row.updatedAt,
 );

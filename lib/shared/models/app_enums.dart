@@ -27,6 +27,8 @@ enum ThemePreference { system, dark, light }
 
 enum FlashcardReviewGrade { again, hard, good, easy }
 
+enum MindMapNodeShape { rectangle, rounded, ellipse, diamond }
+
 extension SkillLevelX on SkillLevel {
   String get label {
     switch (this) {
@@ -167,6 +169,21 @@ extension FlashcardReviewGradeX on FlashcardReviewGrade {
         return 'Bom';
       case FlashcardReviewGrade.easy:
         return 'Fácil';
+    }
+  }
+}
+
+extension MindMapNodeShapeX on MindMapNodeShape {
+  String get label {
+    switch (this) {
+      case MindMapNodeShape.rectangle:
+        return 'Retângulo';
+      case MindMapNodeShape.rounded:
+        return 'Bloco';
+      case MindMapNodeShape.ellipse:
+        return 'Elipse';
+      case MindMapNodeShape.diamond:
+        return 'Losango';
     }
   }
 }

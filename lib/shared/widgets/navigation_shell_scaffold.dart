@@ -44,7 +44,8 @@ class _NavigationShellScaffoldState
               item.route == AppRoutes.tasks ||
               item.route == AppRoutes.projects ||
               item.route == AppRoutes.notes ||
-              item.route == AppRoutes.flashcards,
+              item.route == AppRoutes.flashcards ||
+              item.route == AppRoutes.mindMaps,
         )
         .toList();
     final secondaryItems = items
@@ -651,6 +652,11 @@ class _WorkspaceTopBar extends StatelessWidget {
                       icon: const Icon(Icons.style_outlined, size: 18),
                       label: const Text('Flashcards'),
                     ),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go(AppRoutes.mindMaps),
+                      icon: const Icon(Icons.account_tree_outlined, size: 18),
+                      label: const Text('Mind Maps'),
+                    ),
                     FilledButton.icon(
                       onPressed: () => context.go(AppRoutes.newSession),
                       icon: const Icon(Icons.play_arrow_rounded, size: 18),
@@ -1164,6 +1170,12 @@ _RouteMeta _routeMeta(String location) {
     return const _RouteMeta(
       title: 'Flashcards',
       subtitle: 'Revisão ativa com decks, fila do dia e repetição espaçada.',
+    );
+  }
+  if (location == AppRoutes.mindMaps) {
+    return const _RouteMeta(
+      title: 'Mind Maps',
+      subtitle: 'Canvas visual para conectar conceitos, módulos e projetos.',
     );
   }
   if (location == AppRoutes.analytics) {

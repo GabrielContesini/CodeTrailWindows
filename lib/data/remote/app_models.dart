@@ -273,6 +273,26 @@ abstract class FlashcardModel with _$FlashcardModel {
 }
 
 @freezed
+abstract class MindMapModel with _$MindMapModel {
+  @JsonSerializable(fieldRename: FieldRename.snake)
+  const factory MindMapModel({
+    required String id,
+    required String userId,
+    required String folderName,
+    required String title,
+    required String contentJson,
+    String? trackId,
+    String? moduleId,
+    String? projectId,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) = _MindMapModel;
+
+  factory MindMapModel.fromJson(Map<String, dynamic> json) =>
+      _$MindMapModelFromJson(json);
+}
+
+@freezed
 abstract class AppSettingsModel with _$AppSettingsModel {
   @JsonSerializable(fieldRename: FieldRename.snake)
   const factory AppSettingsModel({
@@ -669,6 +689,34 @@ extension FlashcardModelMapper on FlashcardModel {
   );
 }
 
+extension MindMapModelMapper on MindMapModel {
+  MindMapEntity toEntity() => MindMapEntity(
+    id: id,
+    userId: userId,
+    folderName: folderName,
+    title: title,
+    contentJson: contentJson,
+    trackId: trackId,
+    moduleId: moduleId,
+    projectId: projectId,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+  );
+
+  static MindMapModel fromEntity(MindMapEntity entity) => MindMapModel(
+    id: entity.id,
+    userId: entity.userId,
+    folderName: entity.folderName,
+    title: entity.title,
+    contentJson: entity.contentJson,
+    trackId: entity.trackId,
+    moduleId: entity.moduleId,
+    projectId: entity.projectId,
+    createdAt: entity.createdAt,
+    updatedAt: entity.updatedAt,
+  );
+}
+
 extension AppSettingsModelMapper on AppSettingsModel {
   AppSettingsEntity toEntity() => AppSettingsEntity(
     id: id,
@@ -707,8 +755,10 @@ class RemoteSyncBundle {
     required this.projectSteps,
     required this.notes,
     required this.flashcards,
+    required this.mindMaps,
     required this.settings,
     this.flashcardsAvailable = true,
+    this.mindMapsAvailable = true,
   });
 
   final List<ProfileModel> profiles;
@@ -724,6 +774,8 @@ class RemoteSyncBundle {
   final List<ProjectStepModel> projectSteps;
   final List<StudyNoteModel> notes;
   final List<FlashcardModel> flashcards;
+  final List<MindMapModel> mindMaps;
   final List<AppSettingsModel> settings;
   final bool flashcardsAvailable;
+  final bool mindMapsAvailable;
 }
