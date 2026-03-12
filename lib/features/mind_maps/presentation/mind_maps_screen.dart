@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +10,6 @@ import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
 import '../../../shared/models/app_view_models.dart';
-import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
@@ -43,6 +43,8 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
   String? _selectedNodeId;
   MindMapDocument? _draftDocument;
   String? _loadedMapId;
+  bool _showLibraryPane = false;
+  bool _showInspectorPane = false;
   bool _connectMode = false;
   String? _connectionSourceNodeId;
 
@@ -63,19 +65,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
 
     return PageFrame(
       title: 'Mind Maps',
-      subtitle:
-          'Organize conceitos, dependências e trilhas visuais em um canvas com zoom, drag e conexões.',
-      tutorial: const PageTutorialData(
-        id: 'mind-maps',
-        title: 'Como usar mind maps',
-        description:
-            'Crie um board, adicione formas e conecte os nós para construir seu mapa mental de estudo.',
-        steps: [
-          'Abra um mapa por trilha, módulo ou projeto.',
-          'Adicione formas geométricas para conceitos, dúvidas e checkpoints.',
-          'Arraste os blocos no canvas e use Conectar para ligar ideias.',
-        ],
-      ),
+      subtitle: 'Canvas visual para ligar conceitos, módulos e projetos.',
       actions: [
         FilledButton.icon(
           onPressed: () => _showMindMapDialog(
@@ -170,6 +160,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
             _selectedNodeId = _draftDocument?.nodes.isNotEmpty == true
                 ? _draftDocument!.nodes.first.id
                 : null;
+            _showInspectorPane = false;
             _connectMode = false;
             _connectionSourceNodeId = null;
             _transformController.value = Matrix4.identity();
@@ -190,42 +181,51 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                         ? null
                         : selectedDocument.nodes.first));
 
-          final library = _buildLibrary(
-            context,
-            filteredMaps,
-            folderOptions,
-            trackNameById,
-            moduleNameById,
-            projectNameById,
-          );
-          final workspace = selectedMap == null || selectedDocument == null
-              ? AppCard(
-                  child: EmptyState(
-                    title: 'Nenhum mapa encontrado',
-                    subtitle:
-                        'Ajuste o filtro da biblioteca ou crie um novo board para continuar.',
-                  ),
-                )
-              : _buildWorkspace(
-                  context,
-                  selectedMap,
-                  selectedDocument,
-                  selectedNode,
-                  trackNameById,
-                  moduleNameById,
-                  projectNameById,
-                  trackBlueprints,
-                  projectBundles,
-                );
-
           return LayoutBuilder(
             builder: (context, constraints) {
+              final library = _buildLibrary(
+                context,
+                filteredMaps,
+                folderOptions,
+                trackNameById,
+                moduleNameById,
+                projectNameById,
+              );
+              final isWideLayout = constraints.maxWidth >= 1360;
+              final workspace = selectedMap == null || selectedDocument == null
+                  ? AppCard(
+                      child: EmptyState(
+                        title: 'Nenhum mapa encontrado',
+                        subtitle:
+                            'Ajuste o filtro da biblioteca ou crie um novo board para continuar.',
+                      ),
+                    )
+                  : _buildWorkspace(
+                      context,
+                      selectedMap,
+                      selectedDocument,
+                      selectedNode,
+                      trackNameById,
+                      moduleNameById,
+                      projectNameById,
+                      trackBlueprints,
+                      projectBundles,
+                      showLibraryToggle: isWideLayout,
+                    );
+
               if (constraints.maxWidth >= 1360) {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(width: 320, child: library),
-                    const SizedBox(width: 16),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      width: _showLibraryPane ? 280 : 0,
+                      child: _showLibraryPane
+                          ? library
+                          : const SizedBox.shrink(),
+                    ),
+                    if (_showLibraryPane) const SizedBox(width: 16),
                     Expanded(child: workspace),
                   ],
                 );
@@ -357,8 +357,9 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     Map<String, String> moduleNameById,
     Map<String, String> projectNameById,
     List<TrackBlueprint> trackBlueprints,
-    List<ProjectBundle> projectBundles,
-  ) {
+    List<ProjectBundle> projectBundles, {
+    required bool showLibraryToggle,
+  }) {
     final contextLabels = _mindMapContextLabels(
       map,
       trackNameById: trackNameById,
@@ -378,7 +379,18 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       builder: (context, constraints) {
         final compactWorkspace =
             constraints.maxWidth < 1320 || constraints.maxHeight < 900;
-        final canvas = _buildCanvas(context, map, document);
+        final canvas = compactWorkspace
+            ? _buildCanvas(context, map, document)
+            : _buildCanvasStage(
+                context,
+                map,
+                document,
+                selectedNode,
+                contextLabels,
+                trackBlueprints,
+                projectBundles,
+                showLibraryToggle: showLibraryToggle,
+              );
         final inspector = _buildInspector(
           context,
           map,
@@ -390,8 +402,8 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
 
         if (compactWorkspace) {
           final canvasHeight = math.max(
-            460.0,
-            math.min(760.0, constraints.maxHeight * 0.62),
+            540.0,
+            math.min(820.0, constraints.maxHeight * 0.72),
           );
 
           return Scrollbar(
@@ -409,6 +421,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                     contextLabels,
                     trackBlueprints,
                     projectBundles,
+                    showLibraryToggle: showLibraryToggle,
                     compact: true,
                   ),
                   const SizedBox(height: 16),
@@ -422,30 +435,22 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
         }
 
         final inspectorWidth = constraints.maxWidth >= 1560 ? 360.0 : 320.0;
+        final inspectorVisible = _showInspectorPane;
 
-        return Column(
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildWorkspaceHeader(
-              context,
-              map,
-              document,
-              selectedNode,
-              contextLabels,
-              trackBlueprints,
-              projectBundles,
-              compact: false,
+            Expanded(child: canvas),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: inspectorVisible ? 16 : 0,
             ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: canvas),
-                  const SizedBox(width: 16),
-                  SizedBox(width: inspectorWidth, child: inspector),
-                ],
-              ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              width: inspectorVisible ? inspectorWidth : 0,
+              child: inspectorVisible ? inspector : const SizedBox.shrink(),
             ),
           ],
         );
@@ -461,12 +466,28 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     List<String> contextLabels,
     List<TrackBlueprint> trackBlueprints,
     List<ProjectBundle> projectBundles, {
+    required bool showLibraryToggle,
     required bool compact,
   }) {
     final actions = Wrap(
       spacing: 10,
       runSpacing: 10,
       children: [
+        if (showLibraryToggle)
+          _ActionChipButton(
+            onTap: () => setState(() => _showLibraryPane = !_showLibraryPane),
+            icon: _showLibraryPane
+                ? Icons.menu_open_rounded
+                : Icons.library_books_outlined,
+            label: _showLibraryPane ? 'Fechar biblioteca' : 'Biblioteca',
+          ),
+        _ActionChipButton(
+          onTap: () => setState(() => _showInspectorPane = !_showInspectorPane),
+          icon: _showInspectorPane
+              ? Icons.chevron_right_rounded
+              : Icons.tune_rounded,
+          label: _showInspectorPane ? 'Fechar inspetor' : 'Inspetor',
+        ),
         PopupMenuButton<MindMapNodeShape>(
           onSelected: (shape) => _createNode(map, document, shape),
           itemBuilder: (context) => MindMapNodeShape.values
@@ -608,6 +629,230 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCanvasStage(
+    BuildContext context,
+    MindMapEntity map,
+    MindMapDocument document,
+    MindMapCanvasNode? selectedNode,
+    List<String> contextLabels,
+    List<TrackBlueprint> trackBlueprints,
+    List<ProjectBundle> projectBundles, {
+    required bool showLibraryToggle,
+  }) {
+    final toolbar = Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.end,
+      children: [
+        if (showLibraryToggle)
+          _OverlayToolButton(
+            icon: _showLibraryPane
+                ? Icons.menu_open_rounded
+                : Icons.library_books_outlined,
+            label: _showLibraryPane ? 'Fechar biblioteca' : 'Biblioteca',
+            onTap: () => setState(() => _showLibraryPane = !_showLibraryPane),
+          ),
+        _OverlayToolButton(
+          icon: _showInspectorPane
+              ? Icons.chevron_right_rounded
+              : Icons.tune_rounded,
+          label: _showInspectorPane ? 'Fechar inspetor' : 'Inspetor',
+          onTap: () => setState(() => _showInspectorPane = !_showInspectorPane),
+        ),
+        PopupMenuButton<MindMapNodeShape>(
+          onSelected: (shape) => _createNode(map, document, shape),
+          itemBuilder: (context) => MindMapNodeShape.values
+              .map(
+                (shape) => PopupMenuItem<MindMapNodeShape>(
+                  value: shape,
+                  child: Text('Adicionar ${shape.label.toLowerCase()}'),
+                ),
+              )
+              .toList(),
+          child: const _OverlayToolButton(
+            icon: Icons.add_box_outlined,
+            label: 'Novo nó',
+            primary: true,
+          ),
+        ),
+        _OverlayToolButton(
+          icon: _connectMode ? Icons.link_off_rounded : Icons.add_link_rounded,
+          label: _connectMode ? 'Cancelar conexão' : 'Conectar',
+          onTap: selectedNode == null
+              ? null
+              : () => setState(() {
+                  _connectMode = !_connectMode;
+                  _connectionSourceNodeId = _connectMode
+                      ? _selectedNodeId
+                      : null;
+                }),
+        ),
+        _OverlayToolButton(
+          icon: Icons.fit_screen_rounded,
+          label: 'Ajustar',
+          onTap: () => _fitContentToViewport(document),
+        ),
+        _OverlayToolButton(
+          icon: Icons.center_focus_strong_rounded,
+          label: 'Resetar',
+          onTap: _resetZoom,
+        ),
+      ],
+    );
+
+    final mapSummary = _FloatingPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            map.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${map.folderName} • ${_formatDateTime(map.updatedAt)}',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colorScheme.onSurface.withValues(alpha: 0.72),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _CanvasMetricChip(
+                icon: Icons.radio_button_checked_rounded,
+                label: '${document.nodes.length} nós',
+              ),
+              _CanvasMetricChip(
+                icon: Icons.timeline_rounded,
+                label: '${document.connections.length} conexões',
+              ),
+              ...contextLabels.take(2).map((item) => _ContextPill(label: item)),
+            ],
+          ),
+          if (selectedNode != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: context.colorScheme.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: context.colorScheme.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.ads_click_rounded,
+                    size: 16,
+                    color: context.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'Selecionado: ${selectedNode.label}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.textTheme.labelLarge?.copyWith(
+                        color: context.colorScheme.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    final quickActions = _FloatingPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          toolbar,
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              if (selectedNode != null)
+                _OverlayToolButton(
+                  icon: Icons.edit_outlined,
+                  label: 'Editar nó',
+                  onTap: () => _editNode(map, document, selectedNode),
+                ),
+              _OverlayToolButton(
+                icon: Icons.tune_rounded,
+                label: 'Editar mapa',
+                onTap: () => _showMindMapDialog(
+                  context,
+                  trackBlueprints: trackBlueprints,
+                  projectBundles: projectBundles,
+                  mindMap: map,
+                ),
+              ),
+              _OverlayToolButton(
+                icon: Icons.delete_outline_rounded,
+                label: 'Excluir mapa',
+                onTap: () => _deleteMap(map),
+                danger: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return Stack(
+      children: [
+        Positioned.fill(child: _buildCanvas(context, map, document)),
+        Positioned(
+          top: 18,
+          left: 18,
+          right: 18,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 1220) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    mapSummary,
+                    const SizedBox(height: 12),
+                    quickActions,
+                  ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 460),
+                    child: mapSummary,
+                  ),
+                  const Spacer(),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 620),
+                    child: quickActions,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -959,6 +1204,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     setState(() {
       _draftDocument = updated;
       _selectedNodeId = node.id;
+      _showInspectorPane = true;
     });
     await _persistDocument(map, updated);
   }
@@ -977,7 +1223,10 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
           if (item.id == node.id) updatedNode else item,
       ],
     );
-    setState(() => _draftDocument = updated);
+    setState(() {
+      _draftDocument = updated;
+      _showInspectorPane = true;
+    });
     await _persistDocument(map, updated);
   }
 
@@ -1048,7 +1297,10 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     MindMapDocument document,
     MindMapCanvasNode node,
   ) async {
-    setState(() => _selectedNodeId = node.id);
+    setState(() {
+      _selectedNodeId = node.id;
+      _showInspectorPane = true;
+    });
 
     if (!_connectMode) return;
 
@@ -1660,6 +1912,151 @@ class _ActionChipButton extends StatelessWidget {
           onTap: onTap,
           child: _ActionChip(icon: icon, label: label),
         ),
+      ),
+    );
+  }
+}
+
+class _FloatingPanel extends StatelessWidget {
+  const _FloatingPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: context.colorScheme.surface.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: context.colorScheme.outline.withValues(alpha: 0.74),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.14),
+                blurRadius: 28,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OverlayToolButton extends StatelessWidget {
+  const _OverlayToolButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.primary = false,
+    this.danger = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool primary;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = onTap == null;
+    final scheme = context.colorScheme;
+    final background = primary
+        ? scheme.primary.withValues(alpha: disabled ? 0.36 : 0.92)
+        : danger
+        ? scheme.error.withValues(alpha: disabled ? 0.16 : 0.14)
+        : scheme.surfaceContainerHighest.withValues(
+            alpha: disabled ? 0.32 : 0.82,
+          );
+    final foreground = primary
+        ? scheme.onPrimary
+        : danger
+        ? scheme.error
+        : scheme.onSurface;
+
+    return Opacity(
+      opacity: disabled ? 0.46 : 1,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              color: background,
+              border: Border.all(
+                color: primary
+                    ? scheme.primary.withValues(alpha: 0.24)
+                    : danger
+                    ? scheme.error.withValues(alpha: 0.22)
+                    : scheme.outline.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: foreground),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: context.textTheme.labelLarge?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CanvasMetricChip extends StatelessWidget {
+  const _CanvasMetricChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: context.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.82,
+        ),
+        border: Border.all(
+          color: context.colorScheme.outline.withValues(alpha: 0.62),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: context.colorScheme.primary),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: context.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
