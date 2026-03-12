@@ -35,6 +35,7 @@ class _NavigationShellScaffoldState
   @override
   Widget build(BuildContext context) {
     final items = buildNavigationItems();
+    final isMindMapEditor = widget.location.startsWith(AppRoutes.mindMapEditor);
     final primaryItems = items
         .where(
           (item) =>
@@ -64,9 +65,12 @@ class _NavigationShellScaffoldState
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final showRailZone = constraints.maxWidth >= 1540;
+              final showRailZone =
+                  !isMindMapEditor && constraints.maxWidth >= 1540;
               final showRail = showRailZone && _railVisible;
-              final pagePadding = constraints.maxWidth >= 1700 ? 26.0 : 20.0;
+              final pagePadding = isMindMapEditor
+                  ? 16.0
+                  : (constraints.maxWidth >= 1700 ? 26.0 : 20.0);
 
               return Padding(
                 padding: EdgeInsets.all(pagePadding),
@@ -94,17 +98,19 @@ class _NavigationShellScaffoldState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _WorkspaceTopBar(
-                            meta: routeMeta,
-                            showRailControl: showRailZone,
-                            railVisible: _railVisible,
-                            onToggleRail: () {
-                              setState(() {
-                                _railVisible = !_railVisible;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 18),
+                          if (!isMindMapEditor) ...[
+                            _WorkspaceTopBar(
+                              meta: routeMeta,
+                              showRailControl: showRailZone,
+                              railVisible: _railVisible,
+                              onToggleRail: () {
+                                setState(() {
+                                  _railVisible = !_railVisible;
+                                });
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                          ],
                           Expanded(child: widget.child),
                         ],
                       ),
@@ -1178,6 +1184,13 @@ _RouteMeta _routeMeta(String location) {
       subtitle: 'Canvas visual para conectar conceitos, módulos e projetos.',
     );
   }
+  if (location.startsWith(AppRoutes.mindMapEditor)) {
+    return const _RouteMeta(
+      title: 'Mind Map Canvas',
+      subtitle:
+          'Editor dedicado para criar e reorganizar o mapa com foco total no canvas.',
+    );
+  }
   if (location == AppRoutes.analytics) {
     return const _RouteMeta(
       title: 'Analytics',
@@ -1210,6 +1223,9 @@ bool _matchesLocation(String route, String location) {
   }
   if (route == AppRoutes.settings) {
     return location == route || location.startsWith('${AppRoutes.settings}/');
+  }
+  if (route == AppRoutes.mindMaps) {
+    return location == route || location.startsWith(AppRoutes.mindMapEditor);
   }
   return location == route;
 }

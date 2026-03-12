@@ -49,6 +49,8 @@ class AppRoutes {
   static const notes = '/notes';
   static const flashcards = '/flashcards';
   static const mindMaps = '/mind-maps';
+  static const mindMapEditor = '/mind-maps/editor';
+  static const mindMapNew = '/mind-maps/editor/new';
   static const analytics = '/analytics';
   static const settings = '/settings';
   static const settingsAccount = '/settings/account';
@@ -150,6 +152,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.mindMaps,
             builder: (context, state) => const MindMapsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.mindMapNew,
+            builder: (context, state) =>
+                const MindMapsScreen(immersive: true, createOnOpen: true),
+          ),
+          GoRoute(
+            path: '${AppRoutes.mindMapEditor}/:mindMapId',
+            builder: (context, state) => MindMapsScreen(
+              immersive: true,
+              initialMindMapId: state.pathParameters['mindMapId'],
+            ),
           ),
           GoRoute(
             path: AppRoutes.analytics,
