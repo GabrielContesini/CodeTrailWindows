@@ -15,7 +15,6 @@ import '../../../shared/models/app_view_models.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
-import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
@@ -257,31 +256,51 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       },
     );
 
-    if (widget.immersive) {
-      return AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildImmersiveHeader(context),
-            const SizedBox(height: 14),
-            Expanded(child: content),
-          ],
-        ),
-      );
-    }
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          widget.immersive
+              ? _buildImmersiveHeader(context)
+              : _buildLibraryHeader(context),
+          const SizedBox(height: 14),
+          Expanded(child: content),
+        ],
+      ),
+    );
+  }
 
-    return PageFrame(
-      title: 'Mind Maps',
-      subtitle:
-          'Biblioteca de mapas mentais e atalhos para abrir o canvas dedicado.',
-      actions: [
+  Widget _buildLibraryHeader(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Mapas mentais',
+                style: context.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Abra um mapa no editor dedicado ou crie um board novo com foco total no canvas.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
         FilledButton.icon(
           onPressed: () => context.push(AppRoutes.mindMapNew),
           icon: const Icon(Icons.account_tree_outlined),
           label: const Text('Novo mapa'),
         ),
       ],
-      child: content,
     );
   }
 
@@ -342,6 +361,20 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Mapas',
+            style: context.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${maps.length} mapa(s) no resultado atual.',
+            style: context.textTheme.bodySmall?.copyWith(
+              color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+            ),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -364,12 +397,6 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                     });
                   },
                 ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: () => context.push(AppRoutes.mindMapNew),
-                icon: const Icon(Icons.add_box_outlined, size: 18),
-                label: const Text('Novo'),
               ),
             ],
           ),
@@ -451,6 +478,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       moduleNameById,
       projectNameById,
     );
+    final compact = constraints.maxWidth < 1420;
 
     final preview = selectedMap == null
         ? AppCard(
@@ -468,16 +496,17 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
         : _buildLibraryPreview(
             context,
             selectedMap,
+            compact: compact,
             trackNameById: trackNameById,
             moduleNameById: moduleNameById,
             projectNameById: projectNameById,
           );
 
-    if (constraints.maxWidth >= 1380) {
+    if (!compact) {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: 320, child: library),
+          SizedBox(width: 332, child: library),
           const SizedBox(width: 18),
           Expanded(child: preview),
         ],
@@ -486,9 +515,9 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
 
     return Column(
       children: [
-        Expanded(child: library),
+        SizedBox(height: 360, child: library),
         const SizedBox(height: 16),
-        SizedBox(height: 280, child: preview),
+        Expanded(child: preview),
       ],
     );
   }
@@ -496,6 +525,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
   Widget _buildLibraryPreview(
     BuildContext context,
     MindMapEntity map, {
+    required bool compact,
     required Map<String, String> trackNameById,
     required Map<String, String> moduleNameById,
     required Map<String, String> projectNameById,
@@ -510,40 +540,11 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       moduleNameById: moduleNameById,
       projectNameById: projectNameById,
     );
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            map.title,
-            style: context.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              height: 1.0,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _CanvasMetricChip(
-                icon: Icons.radio_button_checked_rounded,
-                label: '${document.nodes.length} nós',
-              ),
-              _CanvasMetricChip(
-                icon: Icons.timeline_rounded,
-                label: '${document.connections.length} conexões',
-              ),
-              _CanvasMetricChip(
-                icon: Icons.folder_open_rounded,
-                label: map.folderName,
-              ),
-              ...contextLabels.map((item) => _ContextPill(label: item)),
-            ],
-          ),
-          const Spacer(),
-          Wrap(
+    final summaryCard = AppCard(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stackActions = compact || constraints.maxWidth < 720;
+          final actions = Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
@@ -559,9 +560,164 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                 label: const Text('Novo mapa'),
               ),
             ],
-          ),
-        ],
+          );
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Selecionado',
+                style: context.textTheme.labelLarge?.copyWith(
+                  color: context.colorScheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (stackActions) ...[
+                Text(
+                  map.title,
+                  style: context.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Abra este mapa em um canvas dedicado para editar com mais espaço e foco.',
+                  style: context.textTheme.bodyMedium?.copyWith(
+                    color: context.colorScheme.onSurface.withValues(
+                      alpha: 0.72,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                actions,
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            map.title,
+                            style: context.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              height: 1.0,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Abra este mapa em um canvas dedicado para editar com mais espaço e foco.',
+                            style: context.textTheme.bodyMedium?.copyWith(
+                              color: context.colorScheme.onSurface.withValues(
+                                alpha: 0.72,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 18),
+                    actions,
+                  ],
+                ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _CanvasMetricChip(
+                    icon: Icons.radio_button_checked_rounded,
+                    label: '${document.nodes.length} nós',
+                  ),
+                  _CanvasMetricChip(
+                    icon: Icons.timeline_rounded,
+                    label: '${document.connections.length} conexões',
+                  ),
+                  _CanvasMetricChip(
+                    icon: Icons.folder_open_rounded,
+                    label: map.folderName,
+                  ),
+                  ...contextLabels.map((item) => _ContextPill(label: item)),
+                ],
+              ),
+            ],
+          );
+        },
       ),
+    );
+
+    final previewCard = AppCard(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                context.colorScheme.surface.withValues(alpha: 0.96),
+                context.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.52,
+                ),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(child: _MiniMindMapPreview(document: document)),
+              Positioned(
+                right: 18,
+                bottom: 18,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: context.colorScheme.surface.withValues(alpha: 0.92),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: context.colorScheme.outline.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: Text(
+                      'Prévia do mapa',
+                      style: context.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          summaryCard,
+          const SizedBox(height: 16),
+          SizedBox(height: 280, child: previewCard),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        summaryCard,
+        const SizedBox(height: 16),
+        Expanded(child: previewCard),
+      ],
     );
   }
 
@@ -2002,6 +2158,92 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
   }
 }
 
+class _MiniMindMapPreview extends StatelessWidget {
+  const _MiniMindMapPreview({required this.document});
+
+  final MindMapDocument document;
+
+  @override
+  Widget build(BuildContext context) {
+    if (document.nodes.isEmpty) {
+      return Center(
+        child: Text(
+          'Sem nós para pré-visualizar.',
+          style: context.textTheme.bodyMedium?.copyWith(
+            color: context.colorScheme.onSurface.withValues(alpha: 0.68),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final left = document.nodes
+            .map((item) => item.x)
+            .reduce((value, element) => math.min(value, element));
+        final top = document.nodes
+            .map((item) => item.y)
+            .reduce((value, element) => math.min(value, element));
+        final right = document.nodes
+            .map((item) => item.x + item.width)
+            .reduce((value, element) => math.max(value, element));
+        final bottom = document.nodes
+            .map((item) => item.y + item.height)
+            .reduce((value, element) => math.max(value, element));
+
+        const padding = 48.0;
+        final contentWidth = math.max(right - left, 1.0);
+        final contentHeight = math.max(bottom - top, 1.0);
+        final scale = math
+            .min(
+              (constraints.maxWidth - padding * 2) / contentWidth,
+              (constraints.maxHeight - padding * 2) / contentHeight,
+            )
+            .clamp(0.18, 0.72);
+
+        final offsetX =
+            (constraints.maxWidth - contentWidth * scale) / 2 - left * scale;
+        final offsetY =
+            (constraints.maxHeight - contentHeight * scale) / 2 - top * scale;
+
+        final previewNodes = [
+          for (final node in document.nodes)
+            node.copyWith(
+              x: offsetX + node.x * scale,
+              y: offsetY + node.y * scale,
+              width: math.max(74.0, node.width * scale),
+              height: math.max(44.0, node.height * scale),
+            ),
+        ];
+
+        return Stack(
+          children: [
+            const Positioned.fill(
+              child: CustomPaint(painter: _MindMapGridPainter()),
+            ),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _MindMapConnectionsPainter(
+                  nodes: previewNodes,
+                  connections: document.connections,
+                  selectedNodeId: null,
+                  connectionSourceNodeId: null,
+                ),
+              ),
+            ),
+            for (final node in previewNodes)
+              Positioned(
+                left: node.x,
+                top: node.y,
+                child: _MiniNodeCard(node: node),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _MapListTile extends StatelessWidget {
   const _MapListTile({
     required this.map,
@@ -2468,6 +2710,88 @@ class _NodeCard extends StatelessWidget {
                 boxShadow: _nodeShadow(accent, selected),
               ),
               child: Transform.rotate(angle: -math.pi / 4, child: text),
+            ),
+          ),
+        );
+    }
+  }
+}
+
+class _MiniNodeCard extends StatelessWidget {
+  const _MiniNodeCard({required this.node});
+
+  final MindMapCanvasNode node;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _colorFromHex(node.colorHex);
+    final foreground = _foregroundForNode(accent);
+    final border = foreground.withValues(alpha: 0.22);
+
+    final label = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      child: Center(
+        child: Text(
+          node.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: context.textTheme.labelSmall?.copyWith(
+            color: foreground,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+
+    switch (node.shape) {
+      case MindMapNodeShape.rectangle:
+        return Container(
+          width: node.width,
+          height: node.height,
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: border),
+          ),
+          child: label,
+        );
+      case MindMapNodeShape.rounded:
+        return Container(
+          width: node.width,
+          height: node.height,
+          decoration: BoxDecoration(
+            color: accent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: border),
+          ),
+          child: label,
+        );
+      case MindMapNodeShape.ellipse:
+        return SizedBox(
+          width: node.width,
+          height: node.height,
+          child: DecoratedBox(
+            decoration: ShapeDecoration(
+              color: accent,
+              shape: OvalBorder(side: BorderSide(color: border)),
+            ),
+            child: label,
+          ),
+        );
+      case MindMapNodeShape.diamond:
+        final size = math.min(node.width, node.height);
+        return SizedBox(
+          width: size,
+          height: size,
+          child: Transform.rotate(
+            angle: math.pi / 4,
+            child: Container(
+              decoration: BoxDecoration(
+                color: accent,
+                border: Border.all(color: border),
+              ),
+              child: Transform.rotate(angle: -math.pi / 4, child: label),
             ),
           ),
         );
