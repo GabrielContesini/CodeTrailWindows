@@ -7,7 +7,6 @@ import '../../core/router/app_router.dart';
 import '../../core/utils/icon_mapper.dart';
 import '../../features/auth/application/auth_controller.dart';
 import '../../features/settings/application/settings_controller.dart';
-import '../models/app_enums.dart';
 import '../models/app_view_models.dart';
 import 'app_logo.dart';
 import 'gradient_scaffold.dart';
@@ -30,7 +29,6 @@ class NavigationShellScaffold extends ConsumerStatefulWidget {
 class _NavigationShellScaffoldState
     extends ConsumerState<NavigationShellScaffold> {
   bool _sidebarCollapsed = false;
-  bool _railVisible = true;
 
   @override
   Widget build(BuildContext context) {
@@ -68,9 +66,6 @@ class _NavigationShellScaffoldState
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final showRailZone =
-                  !isMindMapEditor && constraints.maxWidth >= 1540;
-              final showRail = showRailZone && _railVisible;
               final pagePadding = isMindMapEditor
                   ? 16.0
                   : (constraints.maxWidth >= 1700 ? 26.0 : 20.0);
@@ -103,36 +98,13 @@ class _NavigationShellScaffoldState
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (!isMindMapEditor) ...[
-                            _WorkspaceTopBar(
-                              meta: routeMeta,
-                              showRailControl: showRailZone,
-                              railVisible: _railVisible,
-                              onToggleRail: () {
-                                setState(() {
-                                  _railVisible = !_railVisible;
-                                });
-                              },
-                            ),
+                            _WorkspaceTopBar(meta: routeMeta),
                             const SizedBox(height: 18),
                           ],
                           Expanded(child: widget.child),
                         ],
                       ),
                     ),
-                    if (showRail) ...[
-                      const SizedBox(width: 18),
-                      SizedBox(
-                        width: 320,
-                        child: _WorkspaceRail(
-                          location: widget.location,
-                          onClose: () {
-                            setState(() {
-                              _railVisible = false;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               );
@@ -583,17 +555,9 @@ class _CompactSidebarButton extends StatelessWidget {
 }
 
 class _WorkspaceTopBar extends StatelessWidget {
-  const _WorkspaceTopBar({
-    required this.meta,
-    required this.showRailControl,
-    required this.railVisible,
-    required this.onToggleRail,
-  });
+  const _WorkspaceTopBar({required this.meta});
 
   final _RouteMeta meta;
-  final bool showRailControl;
-  final bool railVisible;
-  final VoidCallback onToggleRail;
 
   @override
   Widget build(BuildContext context) {
@@ -641,20 +605,6 @@ class _WorkspaceTopBar extends StatelessWidget {
                   runSpacing: 10,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    if (showRailControl)
-                      Tooltip(
-                        message: railVisible
-                            ? 'Ocultar painel lateral'
-                            : 'Mostrar painel lateral',
-                        child: IconButton(
-                          onPressed: onToggleRail,
-                          icon: Icon(
-                            railVisible
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                          ),
-                        ),
-                      ),
                     OutlinedButton.icon(
                       onPressed: () => context.go(AppRoutes.notes),
                       icon: const Icon(Icons.note_alt_outlined, size: 18),
@@ -726,367 +676,6 @@ class _TopBarCopy extends StatelessWidget {
           style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
-    );
-  }
-}
-
-class _WorkspaceRail extends ConsumerWidget {
-  const _WorkspaceRail({required this.location, required this.onClose});
-
-  final String location;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(profileProvider).asData?.value;
-    final goal = ref.watch(userGoalProvider).asData?.value;
-    final settings = ref.watch(appSettingsProvider).asData?.value;
-    final session = ref.watch(authSessionProvider).asData?.value;
-    final scheme = Theme.of(context).colorScheme;
-    final meta = _routeMeta(location);
-    final displayName = profile?.fullName ?? 'CodeTrail';
-    final email = session?.user.email ?? profile?.email ?? 'Sem e-mail';
-    final initials = _initials(displayName);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: scheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: scheme.outline.withValues(alpha: 0.82)),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Painel lateral',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: onClose,
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            _RailBlock(
-              title: 'Conta conectada',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _AvatarBadge(initials: initials, size: 50),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              displayName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              email,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _InfoPill(
-                        label:
-                            'Tema ${_themePreferenceLabel(settings?.themePreference ?? ThemePreference.dark)}',
-                        icon: Icons.palette_outlined,
-                      ),
-                      _InfoPill(
-                        label: (settings?.notificationsEnabled ?? true)
-                            ? 'Alertas ativos'
-                            : 'Alertas pausados',
-                        icon: Icons.notifications_active_outlined,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            _RailBlock(
-              title: 'Ritmo atual',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _MetricLine(
-                    label: 'Foco principal',
-                    value: goal?.focusType.label ?? 'Ainda não definido',
-                  ),
-                  const SizedBox(height: 10),
-                  _MetricLine(
-                    label: 'Meta',
-                    value:
-                        goal?.primaryGoal ??
-                        'Conclua o onboarding para definir.',
-                  ),
-                  const SizedBox(height: 10),
-                  _MetricLine(
-                    label: 'Cadência semanal',
-                    value: goal == null
-                        ? 'Sem rotina definida'
-                        : '${goal.hoursPerDay}h por dia • ${goal.daysPerWeek} dias/semana',
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            _RailBlock(
-              title: 'Contexto da página',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    meta.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    meta.subtitle,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            _RailBlock(
-              title: 'Atalhos',
-              child: Column(
-                children: [
-                  _ShortcutTile(
-                    icon: Icons.person_outline_rounded,
-                    title: 'Conta',
-                    subtitle: 'Ajustar perfil, trilha e preferências.',
-                    onTap: () => context.go(AppRoutes.settingsAccount),
-                  ),
-                  const SizedBox(height: 8),
-                  _ShortcutTile(
-                    icon: Icons.help_outline_rounded,
-                    title: 'Ajuda',
-                    subtitle: 'Revisar FAQs e tutoriais do workspace.',
-                    onTap: () => context.go(AppRoutes.settingsHelp),
-                  ),
-                  const SizedBox(height: 8),
-                  _ShortcutTile(
-                    icon: Icons.add_task_rounded,
-                    title: 'Nova tarefa',
-                    subtitle: 'Registrar o próximo passo da sua trilha.',
-                    onTap: () => context.go(AppRoutes.tasks),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RailBlock extends StatelessWidget {
-  const _RailBlock({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.82),
-        ),
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.38),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          child,
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricLine extends StatelessWidget {
-  const _MetricLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.56),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.82),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.10),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ShortcutTile extends StatelessWidget {
-  const _ShortcutTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.82),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.12),
-                ),
-                child: Icon(icon, color: Theme.of(context).colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_rounded,
-                size: 18,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.52),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1250,12 +839,4 @@ String _initials(String value) {
         .toUpperCase();
   }
   return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
-}
-
-String _themePreferenceLabel(ThemePreference preference) {
-  return switch (preference) {
-    ThemePreference.dark => 'escuro',
-    ThemePreference.light => 'claro',
-    ThemePreference.system => 'do sistema',
-  };
 }
