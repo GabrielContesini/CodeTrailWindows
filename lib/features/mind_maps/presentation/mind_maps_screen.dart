@@ -46,6 +46,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
   final TransformationController _transformController =
       TransformationController();
   final GlobalKey _canvasViewportKey = GlobalKey();
+  final ScrollController _libraryScrollController = ScrollController();
 
   String _selectedFolder = 'Todas';
   String? _selectedMapId;
@@ -62,8 +63,19 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
 
   @override
   void dispose() {
+    _libraryScrollController.dispose();
     _transformController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MindMapsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialMindMapId != widget.initialMindMapId ||
+        oldWidget.immersive != widget.immersive ||
+        oldWidget.createOnOpen != widget.createOnOpen) {
+      _resetRouteDrivenState();
+    }
   }
 
   @override
@@ -129,13 +141,16 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
               }).toList();
 
         if (!_initialRouteSelectionApplied) {
-          _selectedMapId = widget.initialMindMapId ?? _selectedMapId;
+          _selectedMapId = widget.createOnOpen
+              ? null
+              : (widget.initialMindMapId ?? _selectedMapId);
           _initialRouteSelectionApplied = true;
         }
 
         final sourceMaps = widget.immersive ? mindMaps : filteredMaps;
         final allowFallbackSelection =
-            !(widget.immersive && widget.initialMindMapId != null);
+            !widget.immersive ||
+            (!widget.createOnOpen && widget.initialMindMapId == null);
 
         if (_selectedMapId == null ||
             sourceMaps.every((item) => item.id != _selectedMapId)) {
@@ -304,6 +319,19 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     );
   }
 
+  void _resetRouteDrivenState() {
+    _selectedMapId = widget.createOnOpen ? null : widget.initialMindMapId;
+    _selectedNodeId = null;
+    _draftDocument = null;
+    _loadedMapId = null;
+    _initialRouteSelectionApplied = false;
+    _initialCreationPromptScheduled = false;
+    _showInspectorPane = false;
+    _connectMode = false;
+    _connectionSourceNodeId = null;
+    _transformController.value = Matrix4.identity();
+  }
+
   Widget _buildImmersiveHeader(BuildContext context) {
     return Row(
       children: [
@@ -426,33 +454,40 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                       style: context.textTheme.bodyMedium,
                     ),
                   )
-                : ListView.separated(
-                    itemCount: maps.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final map = maps[index];
-                      final document = MindMapCodec.decode(
-                        map.id == _selectedMapId && _draftDocument != null
-                            ? MindMapCodec.encode(_draftDocument!)
-                            : map.contentJson,
-                        fallbackLabel: map.title,
-                      );
-                      return _MapListTile(
-                        map: map,
-                        document: document,
-                        selected: map.id == _selectedMapId,
-                        contextLabels: _mindMapContextLabels(
-                          map,
-                          trackNameById: trackNameById,
-                          moduleNameById: moduleNameById,
-                          projectNameById: projectNameById,
-                        ),
-                        onTap: () => setState(() {
-                          _selectedMapId = map.id;
-                          _loadedMapId = null;
-                        }),
-                      );
-                    },
+                : Scrollbar(
+                    controller: _libraryScrollController,
+                    thumbVisibility: true,
+                    child: ListView.separated(
+                      controller: _libraryScrollController,
+                      primary: false,
+                      padding: const EdgeInsets.only(right: 8),
+                      itemCount: maps.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final map = maps[index];
+                        final document = MindMapCodec.decode(
+                          map.id == _selectedMapId && _draftDocument != null
+                              ? MindMapCodec.encode(_draftDocument!)
+                              : map.contentJson,
+                          fallbackLabel: map.title,
+                        );
+                        return _MapListTile(
+                          map: map,
+                          document: document,
+                          selected: map.id == _selectedMapId,
+                          contextLabels: _mindMapContextLabels(
+                            map,
+                            trackNameById: trackNameById,
+                            moduleNameById: moduleNameById,
+                            projectNameById: projectNameById,
+                          ),
+                          onTap: () => setState(() {
+                            _selectedMapId = map.id;
+                            _loadedMapId = null;
+                          }),
+                        );
+                      },
+                    ),
                   ),
           ),
         ],
