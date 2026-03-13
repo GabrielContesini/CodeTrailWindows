@@ -36,6 +36,9 @@ class _NavigationShellScaffoldState
   Widget build(BuildContext context) {
     final items = buildNavigationItems();
     final isMindMapEditor = widget.location.startsWith(AppRoutes.mindMapEditor);
+    final effectiveSidebarCollapsed = isMindMapEditor
+        ? true
+        : _sidebarCollapsed;
     final primaryItems = items
         .where(
           (item) =>
@@ -80,9 +83,10 @@ class _NavigationShellScaffoldState
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
                       curve: Curves.easeOutCubic,
-                      width: _sidebarCollapsed ? 92 : 286,
+                      width: effectiveSidebarCollapsed ? 92 : 286,
                       child: _DesktopSidebar(
-                        collapsed: _sidebarCollapsed,
+                        collapsed: effectiveSidebarCollapsed,
+                        lockCollapsed: isMindMapEditor,
                         location: widget.location,
                         primaryItems: primaryItems,
                         secondaryItems: secondaryItems,
@@ -143,6 +147,7 @@ class _NavigationShellScaffoldState
 class _DesktopSidebar extends ConsumerWidget {
   const _DesktopSidebar({
     required this.collapsed,
+    required this.lockCollapsed,
     required this.location,
     required this.primaryItems,
     required this.secondaryItems,
@@ -150,6 +155,7 @@ class _DesktopSidebar extends ConsumerWidget {
   });
 
   final bool collapsed;
+  final bool lockCollapsed;
   final String location;
   final List<AppNavigationItem> primaryItems;
   final List<AppNavigationItem> secondaryItems;
@@ -186,11 +192,12 @@ class _DesktopSidebar extends ConsumerWidget {
           if (collapsed) ...[
             const AppLogo(size: 40),
             const SizedBox(height: 12),
-            _CompactSidebarButton(
-              tooltip: 'Expandir menu',
-              onPressed: onToggleCollapse,
-              icon: Icons.keyboard_double_arrow_right_rounded,
-            ),
+            if (!lockCollapsed)
+              _CompactSidebarButton(
+                tooltip: 'Expandir menu',
+                onPressed: onToggleCollapse,
+                icon: Icons.keyboard_double_arrow_right_rounded,
+              ),
           ] else ...[
             Row(
               children: [

@@ -76,205 +76,257 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     final projectBundles =
         ref.watch(projectsProvider).asData?.value ?? const <ProjectBundle>[];
 
-    return PageFrame(
-      title: widget.immersive ? 'Canvas Mind Map' : 'Mind Maps',
-      subtitle: widget.immersive
-          ? 'Editor exclusivo para organizar conceitos, conexões e fluxo visual.'
-          : 'Biblioteca de mapas mentais e atalhos para abrir o canvas dedicado.',
-      actions: [
-        if (widget.immersive)
-          OutlinedButton.icon(
-            onPressed: _leaveEditor,
-            icon: const Icon(Icons.arrow_back_rounded),
-            label: const Text('Voltar'),
-          )
-        else
-          FilledButton.icon(
-            onPressed: () => context.push(AppRoutes.mindMapNew),
-            icon: const Icon(Icons.account_tree_outlined),
-            label: const Text('Novo mapa'),
-          ),
-      ],
-      child: AsyncValueView(
-        value: mindMapsAsync,
-        loadingMessage: 'Preparando boards e canvas...',
-        data: (mindMaps) {
-          final trackNameById = {
-            for (final item in trackBlueprints) item.track.id: item.track.name,
-          };
-          final moduleNameById = {
-            for (final item in trackBlueprints)
-              for (final module in item.modules) module.id: module.title,
-          };
-          final projectNameById = {
-            for (final item in projectBundles)
-              item.project.id: item.project.title,
-          };
+    final content = AsyncValueView(
+      value: mindMapsAsync,
+      loadingMessage: 'Preparando boards e canvas...',
+      data: (mindMaps) {
+        final trackNameById = {
+          for (final item in trackBlueprints) item.track.id: item.track.name,
+        };
+        final moduleNameById = {
+          for (final item in trackBlueprints)
+            for (final module in item.modules) module.id: module.title,
+        };
+        final projectNameById = {
+          for (final item in projectBundles)
+            item.project.id: item.project.title,
+        };
 
-          if (mindMaps.isEmpty) {
-            return EmptyState(
-              title: 'Nenhum mapa mental criado ainda',
-              subtitle:
-                  'Abra um primeiro board para ligar conceitos, módulos e dependências da sua trilha.',
-              action: FilledButton.icon(
-                onPressed: () => context.push(AppRoutes.mindMapNew),
-                icon: const Icon(Icons.account_tree_outlined),
-                label: const Text('Criar primeiro mapa'),
-              ),
+        if (mindMaps.isEmpty) {
+          return EmptyState(
+            title: 'Nenhum mapa mental criado ainda',
+            subtitle:
+                'Abra um primeiro board para ligar conceitos, módulos e dependências da sua trilha.',
+            action: FilledButton.icon(
+              onPressed: () => context.push(AppRoutes.mindMapNew),
+              icon: const Icon(Icons.account_tree_outlined),
+              label: const Text('Criar primeiro mapa'),
+            ),
+          );
+        }
+
+        final folders = <String>{
+          'Geral',
+          ...mindMaps.map((item) => item.folderName),
+        }..removeWhere((item) => item.trim().isEmpty);
+        final folderOptions = ['Todas', ...(folders.toList()..sort())];
+        if (!folderOptions.contains(_selectedFolder)) {
+          _selectedFolder = 'Todas';
+        }
+
+        final normalizedQuery = _searchQuery.trim().toLowerCase();
+        final folderFiltered = _selectedFolder == 'Todas'
+            ? mindMaps
+            : mindMaps
+                  .where((item) => item.folderName == _selectedFolder)
+                  .toList();
+        final filteredMaps = normalizedQuery.isEmpty
+            ? folderFiltered
+            : folderFiltered.where((item) {
+                final haystack =
+                    '${item.title} ${item.folderName} ${trackNameById[item.trackId] ?? ''} ${moduleNameById[item.moduleId] ?? ''} ${projectNameById[item.projectId] ?? ''}'
+                        .toLowerCase();
+                return haystack.contains(normalizedQuery);
+              }).toList();
+
+        if (!_initialRouteSelectionApplied) {
+          _selectedMapId = widget.initialMindMapId ?? _selectedMapId;
+          _initialRouteSelectionApplied = true;
+        }
+
+        final sourceMaps = widget.immersive ? mindMaps : filteredMaps;
+        final allowFallbackSelection =
+            !(widget.immersive && widget.initialMindMapId != null);
+
+        if (_selectedMapId == null ||
+            sourceMaps.every((item) => item.id != _selectedMapId)) {
+          _selectedMapId = allowFallbackSelection && sourceMaps.isNotEmpty
+              ? sourceMaps.first.id
+              : _selectedMapId;
+        }
+
+        MindMapEntity? selectedMap;
+        for (final item in sourceMaps) {
+          if (item.id == _selectedMapId) {
+            selectedMap = item;
+            break;
+          }
+        }
+
+        if (widget.immersive &&
+            widget.createOnOpen &&
+            !_initialCreationPromptScheduled &&
+            selectedMap == null) {
+          _initialCreationPromptScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            final screenContext = context;
+            if (!screenContext.mounted) return;
+            final created = await _showMindMapDialog(
+              screenContext,
+              trackBlueprints: trackBlueprints,
+              projectBundles: projectBundles,
             );
-          }
-
-          final folders = <String>{
-            'Geral',
-            ...mindMaps.map((item) => item.folderName),
-          }..removeWhere((item) => item.trim().isEmpty);
-          final folderOptions = ['Todas', ...(folders.toList()..sort())];
-          if (!folderOptions.contains(_selectedFolder)) {
-            _selectedFolder = 'Todas';
-          }
-
-          final normalizedQuery = _searchQuery.trim().toLowerCase();
-          final folderFiltered = _selectedFolder == 'Todas'
-              ? mindMaps
-              : mindMaps
-                    .where((item) => item.folderName == _selectedFolder)
-                    .toList();
-          final filteredMaps = normalizedQuery.isEmpty
-              ? folderFiltered
-              : folderFiltered.where((item) {
-                  final haystack =
-                      '${item.title} ${item.folderName} ${trackNameById[item.trackId] ?? ''} ${moduleNameById[item.moduleId] ?? ''} ${projectNameById[item.projectId] ?? ''}'
-                          .toLowerCase();
-                  return haystack.contains(normalizedQuery);
-                }).toList();
-
-          if (!_initialRouteSelectionApplied) {
-            _selectedMapId = widget.initialMindMapId ?? _selectedMapId;
-            _initialRouteSelectionApplied = true;
-          }
-
-          final sourceMaps = widget.immersive ? mindMaps : filteredMaps;
-          final allowFallbackSelection =
-              !(widget.immersive && widget.initialMindMapId != null);
-
-          if (_selectedMapId == null ||
-              sourceMaps.every((item) => item.id != _selectedMapId)) {
-            _selectedMapId = allowFallbackSelection && sourceMaps.isNotEmpty
-                ? sourceMaps.first.id
-                : _selectedMapId;
-          }
-
-          MindMapEntity? selectedMap;
-          for (final item in sourceMaps) {
-            if (item.id == _selectedMapId) {
-              selectedMap = item;
-              break;
+            if (!screenContext.mounted) return;
+            if (created == null) {
+              _leaveEditor();
+              return;
             }
-          }
+            screenContext.go('${AppRoutes.mindMapEditor}/${created.id}');
+          });
+        }
 
-          if (widget.immersive &&
-              widget.createOnOpen &&
-              !_initialCreationPromptScheduled &&
-              selectedMap == null) {
-            _initialCreationPromptScheduled = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) async {
-              final screenContext = context;
-              if (!screenContext.mounted) return;
-              final created = await _showMindMapDialog(
-                screenContext,
-                trackBlueprints: trackBlueprints,
-                projectBundles: projectBundles,
-              );
-              if (!screenContext.mounted) return;
-              if (created == null) {
-                _leaveEditor();
-                return;
-              }
-              screenContext.go('${AppRoutes.mindMapEditor}/${created.id}');
+        if (_loadedMapId != selectedMap?.id) {
+          _loadedMapId = selectedMap?.id;
+          _draftDocument = selectedMap == null
+              ? null
+              : MindMapCodec.decode(
+                  selectedMap.contentJson,
+                  fallbackLabel: selectedMap.title,
+                );
+          _selectedNodeId = _draftDocument?.nodes.isNotEmpty == true
+              ? _draftDocument!.nodes.first.id
+              : null;
+          _showInspectorPane = false;
+          _connectMode = false;
+          _connectionSourceNodeId = null;
+          _transformController.value = Matrix4.identity();
+          final documentToFit = _draftDocument;
+          if (documentToFit != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) return;
+              _fitContentToViewport(documentToFit);
             });
           }
+        }
 
-          if (_loadedMapId != selectedMap?.id) {
-            _loadedMapId = selectedMap?.id;
-            _draftDocument = selectedMap == null
-                ? null
-                : MindMapCodec.decode(
-                    selectedMap.contentJson,
-                    fallbackLabel: selectedMap.title,
-                  );
-            _selectedNodeId = _draftDocument?.nodes.isNotEmpty == true
-                ? _draftDocument!.nodes.first.id
-                : null;
-            _showInspectorPane = false;
-            _connectMode = false;
-            _connectionSourceNodeId = null;
-            _transformController.value = Matrix4.identity();
-            final documentToFit = _draftDocument;
-            if (documentToFit != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _fitContentToViewport(documentToFit);
-              });
-            }
-          }
+        final selectedDocument = selectedMap == null ? null : _draftDocument;
+        final selectedNode = selectedDocument == null
+            ? null
+            : (_findNode(selectedDocument, _selectedNodeId) ??
+                  (selectedDocument.nodes.isEmpty
+                      ? null
+                      : selectedDocument.nodes.first));
 
-          final selectedDocument = selectedMap == null ? null : _draftDocument;
-          final selectedNode = selectedDocument == null
-              ? null
-              : (_findNode(selectedDocument, _selectedNodeId) ??
-                    (selectedDocument.nodes.isEmpty
-                        ? null
-                        : selectedDocument.nodes.first));
-
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              if (!widget.immersive) {
-                return _buildLibraryHome(
-                  context,
-                  constraints: constraints,
-                  maps: filteredMaps,
-                  folderOptions: folderOptions,
-                  trackNameById: trackNameById,
-                  moduleNameById: moduleNameById,
-                  projectNameById: projectNameById,
-                  selectedMap: selectedMap,
-                );
-              }
-
-              if (selectedMap == null || selectedDocument == null) {
-                return AppCard(
-                  child: EmptyState(
-                    title: widget.createOnOpen
-                        ? 'Preparando novo canvas'
-                        : 'Mapa não encontrado',
-                    subtitle: widget.createOnOpen
-                        ? 'Abrindo o editor dedicado para configurar seu novo mind map.'
-                        : 'Esse mapa não está mais disponível. Volte para a biblioteca e abra outro canvas.',
-                    action: OutlinedButton.icon(
-                      onPressed: _leaveEditor,
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      label: const Text('Voltar para biblioteca'),
-                    ),
-                  ),
-                );
-              }
-
-              return _buildWorkspace(
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            if (!widget.immersive) {
+              return _buildLibraryHome(
                 context,
-                selectedMap,
-                selectedDocument,
-                selectedNode,
-                trackNameById,
-                moduleNameById,
-                projectNameById,
-                trackBlueprints,
-                projectBundles,
-                showLibraryToggle: false,
+                constraints: constraints,
+                maps: filteredMaps,
+                folderOptions: folderOptions,
+                trackNameById: trackNameById,
+                moduleNameById: moduleNameById,
+                projectNameById: projectNameById,
+                selectedMap: selectedMap,
               );
-            },
-          );
-        },
-      ),
+            }
+
+            if (selectedMap == null || selectedDocument == null) {
+              return AppCard(
+                child: EmptyState(
+                  title: widget.createOnOpen
+                      ? 'Preparando novo canvas'
+                      : 'Mapa não encontrado',
+                  subtitle: widget.createOnOpen
+                      ? 'Abrindo o editor dedicado para configurar seu novo mind map.'
+                      : 'Esse mapa não está mais disponível. Volte para a biblioteca e abra outro canvas.',
+                  action: OutlinedButton.icon(
+                    onPressed: _leaveEditor,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Voltar para biblioteca'),
+                  ),
+                ),
+              );
+            }
+
+            return _buildWorkspace(
+              context,
+              selectedMap,
+              selectedDocument,
+              selectedNode,
+              trackNameById,
+              moduleNameById,
+              projectNameById,
+              trackBlueprints,
+              projectBundles,
+              showLibraryToggle: false,
+            );
+          },
+        );
+      },
+    );
+
+    if (widget.immersive) {
+      return AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildImmersiveHeader(context),
+            const SizedBox(height: 14),
+            Expanded(child: content),
+          ],
+        ),
+      );
+    }
+
+    return PageFrame(
+      title: 'Mind Maps',
+      subtitle:
+          'Biblioteca de mapas mentais e atalhos para abrir o canvas dedicado.',
+      actions: [
+        FilledButton.icon(
+          onPressed: () => context.push(AppRoutes.mindMapNew),
+          icon: const Icon(Icons.account_tree_outlined),
+          label: const Text('Novo mapa'),
+        ),
+      ],
+      child: content,
+    );
+  }
+
+  Widget _buildImmersiveHeader(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Canvas Mind Map',
+                style: context.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Editor dedicado com foco total no canvas e nos vínculos do mapa.',
+                style: context.textTheme.bodyMedium?.copyWith(
+                  color: context.colorScheme.onSurface.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _leaveEditor,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Voltar'),
+            ),
+            FilledButton.icon(
+              onPressed: () => context.push(AppRoutes.mindMapNew),
+              icon: const Icon(Icons.add_box_outlined),
+              label: const Text('Novo mapa'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -290,45 +342,45 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Biblioteca visual',
-            style: context.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedFolder,
+                  decoration: const InputDecoration(labelText: 'Pasta'),
+                  items: folderOptions
+                      .map(
+                        (item) => DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _selectedFolder = value;
+                      _selectedMapId = null;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilledButton.tonalIcon(
+                onPressed: () => context.push(AppRoutes.mindMapNew),
+                icon: const Icon(Icons.add_box_outlined, size: 18),
+                label: const Text('Novo'),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            '${maps.length} mapa(s) visível(is) no filtro atual.',
-            style: context.textTheme.bodySmall?.copyWith(
-              color: context.colorScheme.onSurface.withValues(alpha: 0.72),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedFolder,
-            decoration: const InputDecoration(labelText: 'Filtrar por pasta'),
-            items: folderOptions
-                .map(
-                  (item) =>
-                      DropdownMenuItem<String>(value: item, child: Text(item)),
-                )
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedFolder = value;
-                _selectedMapId = null;
-              });
-            },
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           TextField(
             onChanged: (value) => setState(() {
               _searchQuery = value;
               _selectedMapId = null;
             }),
             decoration: InputDecoration(
-              labelText: 'Buscar por título ou contexto',
+              labelText: 'Buscar mapa',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _searchQuery.isEmpty
                   ? null
@@ -338,7 +390,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                     ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Expanded(
             child: maps.isEmpty
                 ? Center(
@@ -425,7 +477,7 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(width: 360, child: library),
+          SizedBox(width: 320, child: library),
           const SizedBox(width: 18),
           Expanded(child: preview),
         ],
@@ -464,28 +516,13 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Editor dedicado',
-            style: context.textTheme.labelLarge?.copyWith(
-              color: context.colorScheme.primary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
             map.title,
             style: context.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.w900,
               height: 1.0,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Abra este mind map em uma página exclusiva do canvas para criar com mais foco e área útil.',
-            style: context.textTheme.bodyMedium?.copyWith(
-              color: context.colorScheme.onSurface.withValues(alpha: 0.74),
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -2357,10 +2394,11 @@ class _NodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _colorFromHex(node.colorHex);
-    final fill = accent.withValues(alpha: selected ? 0.26 : 0.16);
+    final fill = accent;
+    final foreground = _foregroundForNode(fill);
     final border = selected
-        ? accent
-        : context.colorScheme.outline.withValues(alpha: 0.82);
+        ? foreground.withValues(alpha: 0.96)
+        : foreground.withValues(alpha: 0.26);
 
     final text = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -2372,6 +2410,7 @@ class _NodeCard extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: context.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w800,
+            color: foreground,
           ),
         ),
       ),
@@ -2706,6 +2745,12 @@ Color _colorFromHex(String value) {
   }
   buffer.write(normalized);
   return Color(int.parse(buffer.toString(), radix: 16));
+}
+
+Color _foregroundForNode(Color fill) {
+  return fill.computeLuminance() > 0.58
+      ? Colors.black.withValues(alpha: 0.82)
+      : Colors.white.withValues(alpha: 0.96);
 }
 
 String _defaultColorForShape(MindMapNodeShape shape) {
