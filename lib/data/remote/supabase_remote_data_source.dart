@@ -25,6 +25,45 @@ class SupabaseRemoteDataSource {
     await _client.from(table).delete().eq('id', id);
   }
 
+  bool isMissingTableError(Object error, {String? table}) {
+    final normalizedTable = table?.toLowerCase();
+
+    bool matchesMessage(String message) {
+      final normalizedMessage = message.toLowerCase();
+      final looksLikeMissingTable =
+          normalizedMessage.contains('pgrst205') ||
+          normalizedMessage.contains('could not find the table') ||
+          normalizedMessage.contains('schema cache');
+
+      if (!looksLikeMissingTable) {
+        return false;
+      }
+
+      if (normalizedTable == null || normalizedTable.isEmpty) {
+        return true;
+      }
+
+      return normalizedMessage.contains("'public.$normalizedTable'") ||
+          normalizedMessage.contains('"public.$normalizedTable"') ||
+          normalizedMessage.contains("'$normalizedTable'") ||
+          normalizedMessage.contains('"$normalizedTable"') ||
+          normalizedMessage.contains('public.$normalizedTable');
+    }
+
+    if (error is PostgrestException) {
+      if (error.code == 'PGRST205' &&
+          (normalizedTable == null || matchesMessage(error.message))) {
+        return true;
+      }
+
+      if (matchesMessage(error.message)) {
+        return true;
+      }
+    }
+
+    return matchesMessage(error.toString());
+  }
+
   Future<RemoteSyncBundle> fetchAll(String userId) async {
     final trackRows = await _client.from('study_tracks').select();
     final skillRows = await _client.from('study_skills').select();
@@ -61,9 +100,13 @@ class SupabaseRemoteDataSource {
           .from('flashcards')
           .select()
           .eq('user_id', userId);
-    } catch (_) {
-      flashcardsAvailable = false;
-      flashcardRows = <dynamic>[];
+    } catch (error) {
+      if (isMissingTableError(error, table: 'flashcards')) {
+        flashcardsAvailable = false;
+        flashcardRows = <dynamic>[];
+      } else {
+        rethrow;
+      }
     }
     var mindMapsAvailable = true;
     List<dynamic> mindMapRows = <dynamic>[];
@@ -72,18 +115,28 @@ class SupabaseRemoteDataSource {
           .from('mind_maps')
           .select()
           .eq('user_id', userId);
-    } catch (_) {
-      mindMapsAvailable = false;
-      mindMapRows = <dynamic>[];
+    } catch (error) {
+      if (isMissingTableError(error, table: 'mind_maps')) {
+        mindMapsAvailable = false;
+        mindMapRows = <dynamic>[];
+      } else {
+        rethrow;
+      }
     }
+    var notesAvailable = true;
     List<dynamic> noteRows = <dynamic>[];
     try {
       noteRows = await _client
           .from('study_notes')
           .select()
           .eq('user_id', userId);
-    } catch (_) {
-      noteRows = <dynamic>[];
+    } catch (error) {
+      if (isMissingTableError(error, table: 'study_notes')) {
+        notesAvailable = false;
+        noteRows = <dynamic>[];
+      } else {
+        rethrow;
+      }
     }
     final settingRows = await _client
         .from('app_settings')
@@ -167,6 +220,7 @@ class SupabaseRemoteDataSource {
           .cast<Map<String, dynamic>>()
           .map(AppSettingsModel.fromJson)
           .toList(),
+      notesAvailable: notesAvailable,
       flashcardsAvailable: flashcardsAvailable,
       mindMapsAvailable: mindMapsAvailable,
     );

@@ -137,6 +137,28 @@ void main() {
         note.title,
       );
     });
+
+    test(
+      'forceSync keeps flashcards queued when remote table is missing',
+      () async {
+        final flashcard = _buildFlashcard();
+
+        await repository.saveFlashcard(flashcard);
+
+        remoteDataSource.missingTables.add('flashcards');
+        connectivityService.connected = true;
+        await repository.forceSync(userId);
+
+        final pending = await database.pendingQueueEntries();
+
+        expect(pending, hasLength(1));
+        expect(pending.single.tableName, 'flashcards');
+        expect(pending.single.attempts, 1);
+        expect(remoteDataSource.rowsFor('flashcards'), isEmpty);
+        expect(syncService.currentState.phase, SyncActivityPhase.cooldown);
+        expect(syncService.currentState.message, contains('flashcards'));
+      },
+    );
   });
 }
 
@@ -149,6 +171,24 @@ TaskEntity _buildTask() {
     description: 'Salvar local, enfileirar e sincronizar com Supabase.',
     priority: TaskPriority.high,
     status: TaskStatus.pending,
+    createdAt: now,
+    updatedAt: now,
+  );
+}
+
+FlashcardEntity _buildFlashcard() {
+  final now = DateTime.utc(2026, 3, 12, 18, 0, 0);
+  return FlashcardEntity(
+    id: 'flashcard-1',
+    userId: 'user-1',
+    deckName: 'Arquitetura',
+    question: 'O que e sync offline-first?',
+    answer: 'Persistir localmente primeiro e sincronizar quando houver rede.',
+    dueAt: now,
+    reviewCount: 0,
+    correctStreak: 0,
+    easeFactor: 2.3,
+    intervalDays: 0,
     createdAt: now,
     updatedAt: now,
   );
@@ -172,6 +212,7 @@ class _FakeConnectivityService extends ConnectivityService {
 
 class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
   final Map<String, Map<String, Map<String, dynamic>>> _tables = {};
+  final Set<String> missingTables = <String>{};
 
   List<Map<String, dynamic>> rowsFor(String table) {
     final rows = _tables[table]?.values.toList() ?? const [];
@@ -180,6 +221,8 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
 
   @override
   Future<void> upsertRow(String table, Map<String, dynamic> payload) async {
+    _throwIfTableMissing(table);
+
     final row = Map<String, dynamic>.from(payload);
     final id = row['id'] as String;
     _tables.putIfAbsent(table, () => <String, Map<String, dynamic>>{})[id] =
@@ -188,7 +231,18 @@ class _InMemoryRemoteDataSource extends SupabaseRemoteDataSource {
 
   @override
   Future<void> deleteRow(String table, String id) async {
+    _throwIfTableMissing(table);
     _tables[table]?.remove(id);
+  }
+
+  void _throwIfTableMissing(String table) {
+    if (!missingTables.contains(table)) {
+      return;
+    }
+
+    throw Exception(
+      "PostgrestException(message: Could not find the table 'public.$table' in the schema cache, code: PGRST205, details: Not Found, hint: null)",
+    );
   }
 
   @override

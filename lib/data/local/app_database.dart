@@ -627,9 +627,11 @@ class AppDatabase extends _$AppDatabase {
       await (delete(
         projectsTable,
       )..where((tbl) => tbl.userId.equals(userId))).go();
-      await (delete(
-        studyNotesTable,
-      )..where((tbl) => tbl.userId.equals(userId))).go();
+      if (bundle.notesAvailable) {
+        await (delete(
+          studyNotesTable,
+        )..where((tbl) => tbl.userId.equals(userId))).go();
+      }
       if (bundle.flashcardsAvailable) {
         await (delete(
           flashcardsTable,
@@ -687,10 +689,14 @@ class AppDatabase extends _$AppDatabase {
               .map((item) => item.toCompanion(pending: false))
               .toList(),
         );
-        batch.insertAllOnConflictUpdate(
-          studyNotesTable,
-          bundle.notes.map((item) => item.toCompanion(pending: false)).toList(),
-        );
+        if (bundle.notesAvailable) {
+          batch.insertAllOnConflictUpdate(
+            studyNotesTable,
+            bundle.notes
+                .map((item) => item.toCompanion(pending: false))
+                .toList(),
+          );
+        }
         if (bundle.flashcardsAvailable) {
           batch.insertAllOnConflictUpdate(
             flashcardsTable,

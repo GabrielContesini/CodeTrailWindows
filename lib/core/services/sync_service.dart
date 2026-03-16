@@ -13,6 +13,8 @@ class SyncFlushResult {
     required this.failedItems,
     required this.deferredItems,
     this.lastError,
+    this.unavailableItems = 0,
+    this.unavailableTables = const <String>{},
   });
 
   final bool isOffline;
@@ -20,10 +22,16 @@ class SyncFlushResult {
   final int failedItems;
   final int deferredItems;
   final String? lastError;
+  final int unavailableItems;
+  final Set<String> unavailableTables;
 
   bool get isSuccessful => !isOffline && failedItems == 0;
   bool get isCooldownOnly =>
-      !isOffline && processedItems == 0 && failedItems == 0 && deferredItems > 0;
+      !isOffline &&
+      processedItems == 0 &&
+      failedItems == 0 &&
+      deferredItems > 0 &&
+      unavailableTables.isEmpty;
 }
 
 class SyncService {
@@ -110,7 +118,9 @@ class SyncService {
     );
   }
 
-  Future<SyncFlushResult> flushPendingQueue({bool ignoreBackoff = false}) async {
+  Future<SyncFlushResult> flushPendingQueue({
+    bool ignoreBackoff = false,
+  }) async {
     if (!await _connectivityService.isConnected()) {
       return const SyncFlushResult(
         isOffline: true,
@@ -137,7 +147,9 @@ class SyncService {
     final deferredItems = entries.length - eligibleEntries.length;
     var processedItems = 0;
     var failedItems = 0;
+    var unavailableItems = 0;
     String? lastError;
+    final unavailableTables = <String>{};
 
     for (final entry in eligibleEntries) {
       try {
@@ -149,6 +161,18 @@ class SyncService {
         await _database.deleteSyncQueueItem(entry.id);
         processedItems += 1;
       } catch (error) {
+        if (_remoteDataSource.isMissingTableError(
+          error,
+          table: entry.tableName,
+        )) {
+          unavailableItems += 1;
+          unavailableTables.add(entry.tableName);
+          lastError =
+              'Tabela remota "${entry.tableName}" nao existe no Supabase.';
+          await _database.markSyncQueueError(entry.id, lastError);
+          continue;
+        }
+
         failedItems += 1;
         lastError = error.toString();
         await _database.markSyncQueueError(entry.id, lastError);
@@ -159,8 +183,10 @@ class SyncService {
       isOffline: false,
       processedItems: processedItems,
       failedItems: failedItems,
-      deferredItems: deferredItems,
+      deferredItems: deferredItems + unavailableItems,
       lastError: lastError,
+      unavailableItems: unavailableItems,
+      unavailableTables: unavailableTables,
     );
   }
 

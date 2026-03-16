@@ -757,6 +757,7 @@ class RemoteSyncBundle {
     required this.flashcards,
     required this.mindMaps,
     required this.settings,
+    this.notesAvailable = true,
     this.flashcardsAvailable = true,
     this.mindMapsAvailable = true,
   });
@@ -776,6 +777,7 @@ class RemoteSyncBundle {
   final List<FlashcardModel> flashcards;
   final List<MindMapModel> mindMaps;
   final List<AppSettingsModel> settings;
+  final bool notesAvailable;
   final bool flashcardsAvailable;
   final bool mindMapsAvailable;
 }

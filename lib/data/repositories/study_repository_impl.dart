@@ -119,6 +119,13 @@ class StudyRepositoryImpl implements StudyRepository {
 
       final bundle = await _remoteDataSource.fetchAll(userId);
       await _database.replaceRemoteSnapshot(userId, bundle);
+      if (flushed.unavailableTables.isNotEmpty) {
+        final tables = flushed.unavailableTables.toList()..sort();
+        _syncService.markSyncCooldown(
+          'Sincronizacao parcial. Aplique a migration do Supabase para: ${tables.join(', ')}.',
+        );
+        return;
+      }
       final message = flushed.processedItems > 0
           ? '${flushed.processedItems} alteracao(oes) sincronizadas com a nuvem.'
           : flushed.deferredItems > 0
