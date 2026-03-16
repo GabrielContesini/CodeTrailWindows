@@ -14,8 +14,13 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../flashcards/application/flashcards_controller.dart';
+import '../../mind_maps/application/mind_maps_controller.dart';
 import '../../projects/application/projects_controller.dart';
+import '../../reviews/application/reviews_controller.dart';
+import '../../tasks/application/tasks_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
+import '../application/note_ai_generator.dart';
 import '../application/notes_controller.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
@@ -29,6 +34,124 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   String _selectedFolder = 'Todas';
   String? _selectedNoteId;
   String _searchQuery = '';
+
+  Future<void> _generateFlashcardsFromNote(
+    BuildContext context,
+    StudyNoteEntity note,
+    NoteContentDocument document,
+  ) async {
+    final uuid = const Uuid();
+    final generated = NoteAiGenerator.buildFlashcards(
+      note: note,
+      noteDocument: document,
+      createId: uuid.v4,
+    );
+
+    if (generated.isEmpty) {
+      context.showAppSnackBar(
+        'A nota precisa de mais conteudo estruturado para gerar flashcards.',
+      );
+      return;
+    }
+
+    final actions = ref.read(flashcardActionsProvider);
+    for (final flashcard in generated) {
+      await actions.save(flashcard);
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    context.showAppSnackBar(
+      '${generated.length} flashcards gerados com IA local.',
+    );
+  }
+
+  Future<void> _generateMindMapFromNote(
+    BuildContext context,
+    StudyNoteEntity note,
+    NoteContentDocument document,
+  ) async {
+    final uuid = const Uuid();
+    final generated = NoteAiGenerator.buildMindMap(
+      note: note,
+      noteDocument: document,
+      createId: uuid.v4,
+    );
+
+    if (generated == null) {
+      context.showAppSnackBar(
+        'A nota ainda nao tem estrutura suficiente para gerar um mind map.',
+      );
+      return;
+    }
+
+    await ref.read(mindMapActionsProvider).save(generated);
+
+    if (!context.mounted) {
+      return;
+    }
+    context.showAppSnackBar('Mind map gerado com IA local.');
+  }
+
+  Future<void> _generateTasksFromNote(
+    BuildContext context,
+    StudyNoteEntity note,
+    NoteContentDocument document,
+  ) async {
+    final uuid = const Uuid();
+    final generated = NoteAiGenerator.buildTasks(
+      note: note,
+      noteDocument: document,
+      createId: uuid.v4,
+    );
+
+    if (generated.isEmpty) {
+      context.showAppSnackBar(
+        'A nota ainda nao gerou tarefas suficientes para acao.',
+      );
+      return;
+    }
+
+    final actions = ref.read(taskActionsProvider);
+    for (final task in generated) {
+      await actions.save(task);
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    context.showAppSnackBar(
+      '${generated.length} tarefas geradas com IA local.',
+    );
+  }
+
+  Future<void> _generateReviewCycleFromNote(
+    BuildContext context,
+    StudyNoteEntity note,
+    NoteContentDocument document,
+  ) async {
+    final uuid = const Uuid();
+    final generated = NoteAiGenerator.buildReviewCycle(
+      note: note,
+      noteDocument: document,
+      createId: uuid.v4,
+    );
+
+    if (generated.isEmpty) {
+      context.showAppSnackBar(
+        'Nao foi possivel montar um ciclo de revisao para essa nota.',
+      );
+      return;
+    }
+
+    await ref.read(reviewActionsProvider).saveBatch(generated);
+
+    if (!context.mounted) {
+      return;
+    }
+    context.showAppSnackBar('Ciclo D+1, D+7, D+15 e D+30 gerado.');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +370,38 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                     ? null
                     : noteDocuments[selectedNote.id] ??
                           NoteContextCodec.decode(selectedNote.content),
+                onGenerateFlashcards: selectedNote == null
+                    ? null
+                    : () => _generateFlashcardsFromNote(
+                        context,
+                        selectedNote!,
+                        noteDocuments[selectedNote.id] ??
+                            NoteContextCodec.decode(selectedNote.content),
+                      ),
+                onGenerateMindMap: selectedNote == null
+                    ? null
+                    : () => _generateMindMapFromNote(
+                        context,
+                        selectedNote!,
+                        noteDocuments[selectedNote.id] ??
+                            NoteContextCodec.decode(selectedNote.content),
+                      ),
+                onGenerateTasks: selectedNote == null
+                    ? null
+                    : () => _generateTasksFromNote(
+                        context,
+                        selectedNote!,
+                        noteDocuments[selectedNote.id] ??
+                            NoteContextCodec.decode(selectedNote.content),
+                      ),
+                onGenerateReviewCycle: selectedNote == null
+                    ? null
+                    : () => _generateReviewCycleFromNote(
+                        context,
+                        selectedNote!,
+                        noteDocuments[selectedNote.id] ??
+                            NoteContextCodec.decode(selectedNote.content),
+                      ),
                 onEdit: selectedNote == null
                     ? null
                     : () => _showNoteDialog(
@@ -471,12 +626,20 @@ class _NotesDetailPane extends StatelessWidget {
   const _NotesDetailPane({
     required this.note,
     required this.noteDocument,
+    required this.onGenerateFlashcards,
+    required this.onGenerateMindMap,
+    required this.onGenerateTasks,
+    required this.onGenerateReviewCycle,
     required this.onEdit,
     required this.onDelete,
   });
 
   final StudyNoteEntity? note;
   final NoteContentDocument? noteDocument;
+  final Future<void> Function()? onGenerateFlashcards;
+  final Future<void> Function()? onGenerateMindMap;
+  final Future<void> Function()? onGenerateTasks;
+  final Future<void> Function()? onGenerateReviewCycle;
   final VoidCallback? onEdit;
   final Future<void> Function()? onDelete;
 
@@ -511,6 +674,30 @@ class _NotesDetailPane extends StatelessWidget {
               _StatChip(label: 'Palavras', value: '$wordCount'),
               _StatChip(label: 'Leitura', value: '$readingMinutes min'),
               ...contextLabels.map((label) => _ContextPill(label: label)),
+              if (onGenerateFlashcards != null)
+                FilledButton.tonalIcon(
+                  onPressed: onGenerateFlashcards,
+                  icon: const Icon(Icons.style_outlined),
+                  label: const Text('Gerar cards'),
+                ),
+              if (onGenerateMindMap != null)
+                FilledButton.tonalIcon(
+                  onPressed: onGenerateMindMap,
+                  icon: const Icon(Icons.account_tree_outlined),
+                  label: const Text('Gerar mapa'),
+                ),
+              if (onGenerateTasks != null)
+                FilledButton.tonalIcon(
+                  onPressed: onGenerateTasks,
+                  icon: const Icon(Icons.playlist_add_check_rounded),
+                  label: const Text('Gerar tarefas'),
+                ),
+              if (onGenerateReviewCycle != null)
+                FilledButton.tonalIcon(
+                  onPressed: onGenerateReviewCycle,
+                  icon: const Icon(Icons.schedule_rounded),
+                  label: const Text('Gerar revisao'),
+                ),
               FilledButton.tonalIcon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined),
