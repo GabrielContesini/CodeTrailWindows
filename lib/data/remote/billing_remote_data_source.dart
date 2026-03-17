@@ -31,20 +31,18 @@ class BillingRemoteDataSource {
   Future<BillingCheckoutSession> createCheckout(
     BillingPlanCode planCode,
   ) async {
-    final response = await _client.functions.invoke(
+    final data = await _invokeAuthenticated(
       'billing-create-checkout',
       body: {'planCode': planCode.name},
     );
-    final data = _mapFromDynamic(response.data);
     return BillingCheckoutSession.fromJson(data);
   }
 
   Future<String> createPortalSession() async {
-    final response = await _client.functions.invoke(
+    final data = await _invokeAuthenticated(
       'billing-create-portal-session',
       body: const <String, dynamic>{},
     );
-    final data = _mapFromDynamic(response.data);
     final url = data['url'] as String?;
     if (url == null || url.isEmpty) {
       throw const AppException(
@@ -55,11 +53,10 @@ class BillingRemoteDataSource {
   }
 
   Future<BillingSnapshot> cancelSubscription() async {
-    final response = await _client.functions.invoke(
+    final data = await _invokeAuthenticated(
       'billing-cancel-subscription',
       body: const <String, dynamic>{},
     );
-    final data = _mapFromDynamic(response.data);
     final snapshot = data['snapshot'];
     if (snapshot is! Map<String, dynamic>) {
       throw const AppException('Resposta inválida ao cancelar assinatura.');
@@ -79,16 +76,33 @@ class BillingRemoteDataSource {
       body['paymentId'] = paymentId;
     }
 
-    final response = await _client.functions.invoke(
+    final data = await _invokeAuthenticated(
       'billing-sync-subscription',
       body: body,
     );
-    final data = _mapFromDynamic(response.data);
     final snapshot = data['snapshot'];
     if (snapshot is! Map<String, dynamic>) {
       throw const AppException('Resposta inválida ao sincronizar assinatura.');
     }
     return BillingSnapshot.fromJson(snapshot);
+  }
+
+  Future<Map<String, dynamic>> _invokeAuthenticated(
+    String functionName, {
+    Object? body,
+  }) async {
+    final accessToken = await SupabaseService.requireAccessToken();
+
+    try {
+      final response = await _client.functions.invoke(
+        functionName,
+        headers: {'Authorization': 'Bearer $accessToken'},
+        body: body,
+      );
+      return _mapFromDynamic(response.data);
+    } on FunctionException catch (error) {
+      throw _mapFunctionException(error);
+    }
   }
 }
 
@@ -98,4 +112,24 @@ Map<String, dynamic> _mapFromDynamic(dynamic value) {
     return value.map((key, dynamic item) => MapEntry(key.toString(), item));
   }
   return <String, dynamic>{};
+}
+
+AppException _mapFunctionException(FunctionException error) {
+  if (error.status == 401) {
+    return const AppException(
+      'A cobrança foi recusada porque a sessão do app não foi autenticada corretamente. Faça login novamente e tente de novo.',
+      code: 'billing_unauthorized',
+    );
+  }
+
+  final details = _mapFromDynamic(error.details);
+  final message =
+      details['error'] as String? ??
+      details['message'] as String? ??
+      error.reasonPhrase;
+
+  return AppException(
+    message ?? 'Falha ao processar a operação de billing.',
+    code: 'billing_function_error',
+  );
 }
