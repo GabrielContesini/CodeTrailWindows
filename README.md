@@ -40,6 +40,42 @@ start ms-settings:developers
 .\scripts\run_windows.ps1
 ```
 
+Para testar billing no app Windows, copie [env/supabase.example.json](./env/supabase.example.json) para `env/supabase.local.json` e preencha tambem:
+
+- `BILLING_PROVIDER=stripe`
+- `STRIPE_PUBLISHABLE_KEY=pk_test_...`
+- `TRIAL_DAYS_DEFAULT=7`
+- `FOUNDING_PLAN_ENABLED=true`
+
+Esses valores sao passados automaticamente para o `flutter run` pelo script.
+
+## Billing SaaS no Windows
+
+O app desktop agora usa a mesma camada interna de billing do produto principal:
+
+- tela interna em `Configuracoes > Plano e cobranca`
+- checkout via Stripe Checkout em navegador externo
+- gerenciamento via Stripe Customer Portal
+- bloqueio de features premium no app
+- fallback offline com cache local do snapshot de billing
+
+Fluxo de teste local no Windows:
+
+1. deixe o projeto Supabase com as Edge Functions de billing publicadas
+2. configure `env/supabase.local.json` com `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `BILLING_PROVIDER` e `STRIPE_PUBLISHABLE_KEY`
+3. rode `.\scripts\run_windows.ps1`
+4. crie login ou entre com um usuario do ambiente de teste
+5. abra `Configuracoes > Plano e cobranca`
+6. clique em `Assinar Pro`
+7. finalize o checkout do Stripe no navegador
+8. volte ao app Windows e clique em `Sincronizar status`
+
+Observacoes:
+
+- a chave secreta do Stripe continua somente no Supabase, nunca no app Windows
+- o Customer Portal abre externamente no navegador
+- se um usuario Free tentar acessar `Analytics`, `Flashcards`, `Mind Maps` ou exceder limites de criacao, o app mostra CTA de upgrade
+
 Se quiser ligar heartbeat real para o Command Center durante o desenvolvimento:
 
 1. copie [env/command_center.example.json](./env/command_center.example.json) para `env/command_center.local.json`

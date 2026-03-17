@@ -19,6 +19,8 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../application/projects_controller.dart';
 
 class ProjectsScreen extends ConsumerWidget {
@@ -735,6 +737,10 @@ class _ProjectCreationDialogState
       if (mounted) {
         Navigator.of(context).pop(true);
       }
+    } on BillingAccessException catch (error) {
+      if (mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -793,7 +799,14 @@ class _ProjectCreationDialogState
         );
       }).toList();
 
-      await ref.read(projectActionsProvider).saveProjects(projects);
+      try {
+        await ref.read(projectActionsProvider).saveProjects(projects);
+      } on BillingAccessException catch (error) {
+        if (mounted) {
+          await showBillingUpgradeModal(context, ref, decision: error.decision);
+        }
+        return;
+      }
       if (mounted) {
         Navigator.of(context).pop(true);
       }

@@ -13,6 +13,9 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_plan_badge.dart';
+import '../../billing/presentation/widgets/billing_trial_banner.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/app_update_controller.dart';
 import '../application/settings_controller.dart';
@@ -30,6 +33,7 @@ class SettingsScreen extends ConsumerWidget {
     final appUpdateAsync = ref.watch(appUpdateControllerProvider);
     final session = ref.watch(authSessionProvider).asData?.value;
     final userId = ref.watch(currentUserIdProvider);
+    final billingSnapshot = ref.watch(currentBillingSnapshotProvider);
 
     final hasError =
         settingsAsync.hasError ||
@@ -126,6 +130,13 @@ class SettingsScreen extends ConsumerWidget {
                     onEditAccount: () => context.push(AppRoutes.settingsAccount),
                   ),
                   const SizedBox(height: 14),
+                  BillingTrialBanner(
+                    snapshot: billingSnapshot,
+                    onPrimaryAction: () =>
+                        context.push(AppRoutes.settingsBilling),
+                    primaryLabel: 'Plano e cobrança',
+                  ),
+                  const SizedBox(height: 14),
                   SyncStatusCard(
                     userId: userId,
                     title: 'Estado da sincronizacao',
@@ -148,6 +159,16 @@ class SettingsScreen extends ConsumerWidget {
                     subtitle:
                         'Ajuste identidade, planejamento e segurança.',
                     children: [
+                      SettingsActionTile(
+                        icon: Icons.workspace_premium_outlined,
+                        title: 'Plano e cobrança',
+                        subtitle:
+                            'Plano ${billingSnapshot.currentPlanCode.name.toUpperCase()} • ${billingSnapshot.isTrialing ? 'trial ativo' : 'gerenciar assinatura'}',
+                        onTap: () => context.push(AppRoutes.settingsBilling),
+                        trailing: BillingPlanBadge(
+                          planCode: billingSnapshot.currentPlanCode,
+                        ),
+                      ),
                       SettingsActionTile(
                         icon: Icons.person_outline_rounded,
                         title: 'Conta',

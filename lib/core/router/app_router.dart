@@ -8,6 +8,7 @@ import '../../core/services/service_providers.dart';
 import '../../features/analytics/presentation/analytics_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
+import '../../features/billing/presentation/billing_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/flashcards/presentation/flashcards_screen.dart';
 import '../../features/mind_maps/presentation/mind_maps_screen.dart';
@@ -53,6 +54,7 @@ class AppRoutes {
   static const mindMapNew = '/mind-maps/editor/new';
   static const analytics = '/analytics';
   static const settings = '/settings';
+  static const settingsBilling = '/settings/billing';
   static const settingsAccount = '/settings/account';
   static const settingsHelp = '/settings/help';
   static const settingsSync = '/settings/sync';
@@ -172,6 +174,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.settings,
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settingsBilling,
+            builder: (context, state) => const BillingScreen(),
           ),
           GoRoute(
             path: AppRoutes.settingsAccount,

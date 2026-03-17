@@ -1,15 +1,19 @@
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/repositories/billing_repository.dart';
 import '../../domain/repositories/study_repository.dart';
 import '../router/app_router.dart';
 
 class StartupCoordinator {
   StartupCoordinator({
     required AuthRepository authRepository,
+    required BillingRepository billingRepository,
     required StudyRepository studyRepository,
   }) : _authRepository = authRepository,
+       _billingRepository = billingRepository,
        _studyRepository = studyRepository;
 
   final AuthRepository _authRepository;
+  final BillingRepository _billingRepository;
   final StudyRepository _studyRepository;
 
   Future<String> resolveInitialRoute() async {
@@ -37,6 +41,7 @@ class StartupCoordinator {
     }
 
     await _studyRepository.sync(activeSession.user.id);
+    await _billingRepository.refreshSnapshot(activeSession.user.id);
     final profile = await _studyRepository.getProfile(activeSession.user.id);
 
     if (profile == null || !profile.onboardingCompleted) {
@@ -67,6 +72,7 @@ class StartupCoordinator {
     }
 
     await _studyRepository.sync(activeSession.user.id);
+    await _billingRepository.refreshSnapshot(activeSession.user.id);
     final profile = await _studyRepository.getProfile(activeSession.user.id);
 
     if (profile == null || !profile.onboardingCompleted) {

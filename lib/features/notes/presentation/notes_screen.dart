@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/utils/layout_utils.dart';
 import '../../../core/utils/note_context_codec.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_view_models.dart';
@@ -14,6 +15,9 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../flashcards/application/flashcards_controller.dart';
 import '../../mind_maps/application/mind_maps_controller.dart';
 import '../../projects/application/projects_controller.dart';
@@ -35,11 +39,24 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
   String? _selectedNoteId;
   String _searchQuery = '';
 
+  bool _ensureAiGenerationAccess(BuildContext context) {
+    final decision = ref.read(
+      billingFeatureAccessProvider(BillingFeatureKey.aiGeneration),
+    );
+    if (decision.allowed) {
+      return true;
+    }
+
+    showBillingUpgradeModal(context, ref, decision: decision);
+    return false;
+  }
+
   Future<void> _generateFlashcardsFromNote(
     BuildContext context,
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildFlashcards(
       note: note,
@@ -54,9 +71,16 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       return;
     }
 
-    final actions = ref.read(flashcardActionsProvider);
-    for (final flashcard in generated) {
-      await actions.save(flashcard);
+    try {
+      final actions = ref.read(flashcardActionsProvider);
+      for (final flashcard in generated) {
+        await actions.save(flashcard);
+      }
+    } on BillingAccessException catch (error) {
+      if (context.mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
+      return;
     }
 
     if (!context.mounted) {
@@ -72,6 +96,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildMindMap(
       note: note,
@@ -86,7 +111,14 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
       return;
     }
 
-    await ref.read(mindMapActionsProvider).save(generated);
+    try {
+      await ref.read(mindMapActionsProvider).save(generated);
+    } on BillingAccessException catch (error) {
+      if (context.mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
+      return;
+    }
 
     if (!context.mounted) {
       return;
@@ -99,6 +131,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildTasks(
       note: note,
@@ -131,6 +164,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     StudyNoteEntity note,
     NoteContentDocument document,
   ) async {
+    if (!_ensureAiGenerationAccess(context)) return;
     final uuid = const Uuid();
     final generated = NoteAiGenerator.buildReviewCycle(
       note: note,
@@ -1446,19 +1480,30 @@ Future<void> _showNoteDialog(
                   );
 
                   final now = DateTime.now().toUtc();
-                  await ref
-                      .read(noteActionsProvider)
-                      .save(
-                        StudyNoteEntity(
-                          id: note?.id ?? uuid.v4(),
-                          userId: userId,
-                          folderName: folder,
-                          title: title,
-                          content: encodedContent,
-                          createdAt: note?.createdAt ?? now,
-                          updatedAt: now,
-                        ),
+                  try {
+                    await ref
+                        .read(noteActionsProvider)
+                        .save(
+                          StudyNoteEntity(
+                            id: note?.id ?? uuid.v4(),
+                            userId: userId,
+                            folderName: folder,
+                            title: title,
+                            content: encodedContent,
+                            createdAt: note?.createdAt ?? now,
+                            updatedAt: now,
+                          ),
+                        );
+                  } on BillingAccessException catch (error) {
+                    if (dialogContext.mounted) {
+                      showBillingUpgradeModal(
+                        dialogContext,
+                        ref,
+                        decision: error.decision,
                       );
+                    }
+                    return;
+                  }
 
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();

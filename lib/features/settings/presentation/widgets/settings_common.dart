@@ -291,6 +291,7 @@ class SettingsActionTile extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.destructive = false,
+    this.trailing,
   });
 
   final IconData icon;
@@ -298,6 +299,7 @@ class SettingsActionTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool destructive;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -355,6 +357,11 @@ class SettingsActionTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (trailing != null) ...[
+                const SizedBox(width: 12),
+                trailing!,
+              ],
+              const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
                 color: accent.withValues(alpha: 0.9),

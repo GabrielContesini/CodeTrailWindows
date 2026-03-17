@@ -2,12 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../domain/entities/billing_entities.dart';
 import '../../../shared/models/app_enums.dart';
 import '../../../shared/models/app_view_models.dart';
 import '../../../shared/models/page_tutorial.dart';
 import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
+import '../../billing/presentation/widgets/billing_feature_gate.dart';
 import '../application/analytics_controller.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -31,114 +33,141 @@ class AnalyticsScreen extends ConsumerWidget {
           'Equilibre o mix entre teoria e prática olhando o foco aplicado.',
         ],
       ),
-      child: AsyncValueView(
-        value: analyticsAsync,
-        data: (AnalyticsSummary analytics) {
-          final weeklyDelta =
-              analytics.currentWeekHours - analytics.previousWeekHours;
-          final weeklyDeltaLabel = weeklyDelta == 0
-              ? 'Estável'
-              : weeklyDelta > 0
-              ? '+${weeklyDelta.toStringAsFixed(1)}h'
-              : '${weeklyDelta.toStringAsFixed(1)}h';
+      child: BillingFeatureGate(
+        featureKey: BillingFeatureKey.analyticsAccess,
+        lockedTitle: 'Analytics premium bloqueado',
+        lockedSubtitle:
+            'Faça upgrade para liberar métricas completas, tendências semanais e visão detalhada de ritmo.',
+        child: AsyncValueView(
+          value: analyticsAsync,
+          data: (AnalyticsSummary analytics) {
+            final weeklyDelta =
+                analytics.currentWeekHours - analytics.previousWeekHours;
+            final weeklyDeltaLabel = weeklyDelta == 0
+                ? 'Estável'
+                : weeklyDelta > 0
+                ? '+${weeklyDelta.toStringAsFixed(1)}h'
+                : '${weeklyDelta.toStringAsFixed(1)}h';
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 1320;
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 1320;
 
-              return ListView(
-                children: [
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: [
-                      _InsightCard(
-                        label: 'Semana atual',
-                        value: '${analytics.currentWeekHours.toStringAsFixed(1)}h',
-                        supporting:
-                            'Comparado com ${analytics.previousWeekHours.toStringAsFixed(1)}h na semana anterior.',
-                      ),
-                      _InsightCard(
-                        label: 'Ritmo semanal',
-                        value: weeklyDeltaLabel,
-                        supporting: weeklyDelta >= 0
-                            ? 'Você está acelerando a cadência recente.'
-                            : 'Semana mais leve do que a anterior.',
-                      ),
-                      _InsightCard(
-                        label: 'Sessão média',
-                        value: '${analytics.averageSessionMinutes.toStringAsFixed(0)} min',
-                        supporting: 'Duração média das sessões registradas.',
-                      ),
-                      _InsightCard(
-                        label: 'Produtividade',
-                        value: '${analytics.averageProductivityScore.toStringAsFixed(1)}/5',
-                        supporting:
-                            analytics.dominantStudyType == null
-                                ? 'Ainda sem sessões suficientes.'
-                                : 'Modo dominante: ${analytics.dominantStudyType!.label}.',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  if (compact) ...[
-                    SizedBox(height: 320, child: _HoursByDayCard(analytics: analytics)),
-                    const SizedBox(height: 16),
-                    SizedBox(height: 320, child: _HoursByWeekCard(analytics: analytics)),
-                    const SizedBox(height: 16),
-                    SizedBox(height: 320, child: _DistributionCard(analytics: analytics)),
-                  ] else
-                    SizedBox(
-                      height: 320,
-                      child: Row(
-                        children: [
-                          Expanded(child: _HoursByDayCard(analytics: analytics)),
-                          const SizedBox(width: 16),
-                          Expanded(child: _HoursByWeekCard(analytics: analytics)),
-                          const SizedBox(width: 16),
-                          Expanded(child: _DistributionCard(analytics: analytics)),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  AppCard(
-                    child: Wrap(
+                return ListView(
+                  children: [
+                    Wrap(
                       spacing: 16,
                       runSpacing: 16,
                       children: [
-                        _MetricBox(
-                          label: 'Taxa de conclusão',
+                        _InsightCard(
+                          label: 'Semana atual',
                           value:
-                              '${(analytics.completedTaskRate * 100).toStringAsFixed(0)}%',
+                              '${analytics.currentWeekHours.toStringAsFixed(1)}h',
+                          supporting:
+                              'Comparado com ${analytics.previousWeekHours.toStringAsFixed(1)}h na semana anterior.',
                         ),
-                        _MetricBox(
-                          label: 'Revisões concluídas',
-                          value: '${analytics.completedReviews}',
+                        _InsightCard(
+                          label: 'Ritmo semanal',
+                          value: weeklyDeltaLabel,
+                          supporting: weeklyDelta >= 0
+                              ? 'Você está acelerando a cadência recente.'
+                              : 'Semana mais leve do que a anterior.',
                         ),
-                        _MetricBox(
-                          label: 'Projetos concluídos',
-                          value: '${analytics.completedProjects}',
+                        _InsightCard(
+                          label: 'Sessão média',
+                          value:
+                              '${analytics.averageSessionMinutes.toStringAsFixed(0)} min',
+                          supporting: 'Duração média das sessões registradas.',
                         ),
-                        _MetricBox(
-                          label: 'Consistência 30d',
-                          value: '${analytics.consistencyDays} dias',
-                        ),
-                        _MetricBox(
-                          label: 'Foco aplicado',
-                          value: '${analytics.focusBalancePercent.toStringAsFixed(0)}%',
-                        ),
-                        _MetricBox(
-                          label: 'Tipo dominante',
-                          value: analytics.dominantStudyType?.label ?? 'Sem dados',
+                        _InsightCard(
+                          label: 'Produtividade',
+                          value:
+                              '${analytics.averageProductivityScore.toStringAsFixed(1)}/5',
+                          supporting:
+                              analytics.dominantStudyType == null
+                                  ? 'Ainda sem sessões suficientes.'
+                                  : 'Modo dominante: ${analytics.dominantStudyType!.label}.',
                         ),
                       ],
                     ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
+                    const SizedBox(height: 16),
+                    if (compact) ...[
+                      SizedBox(
+                        height: 320,
+                        child: _HoursByDayCard(analytics: analytics),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 320,
+                        child: _HoursByWeekCard(analytics: analytics),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 320,
+                        child: _DistributionCard(analytics: analytics),
+                      ),
+                    ] else
+                      SizedBox(
+                        height: 320,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _HoursByDayCard(analytics: analytics),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _HoursByWeekCard(analytics: analytics),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _DistributionCard(analytics: analytics),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                    AppCard(
+                      child: Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          _MetricBox(
+                            label: 'Taxa de conclusão',
+                            value:
+                                '${(analytics.completedTaskRate * 100).toStringAsFixed(0)}%',
+                          ),
+                          _MetricBox(
+                            label: 'Revisões concluídas',
+                            value: '${analytics.completedReviews}',
+                          ),
+                          _MetricBox(
+                            label: 'Projetos concluídos',
+                            value: '${analytics.completedProjects}',
+                          ),
+                          _MetricBox(
+                            label: 'Consistência 30d',
+                            value: '${analytics.consistencyDays} dias',
+                          ),
+                          _MetricBox(
+                            label: 'Foco aplicado',
+                            value:
+                                '${analytics.focusBalancePercent.toStringAsFixed(0)}%',
+                          ),
+                          _MetricBox(
+                            label: 'Tipo dominante',
+                            value:
+                                analytics.dominantStudyType?.label ??
+                                'Sem dados',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

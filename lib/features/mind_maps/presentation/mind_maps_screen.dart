@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/layout_utils.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
@@ -16,6 +17,9 @@ import '../../../shared/widgets/app_card.dart';
 import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_feature_gate.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/mind_map_codec.dart';
@@ -87,10 +91,15 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
     final projectBundles =
         ref.watch(projectsProvider).asData?.value ?? const <ProjectBundle>[];
 
-    final content = AsyncValueView(
-      value: mindMapsAsync,
-      loadingMessage: 'Preparando boards e canvas...',
-      data: (mindMaps) {
+    final content = BillingFeatureGate(
+      featureKey: BillingFeatureKey.mindMapsAccess,
+      lockedTitle: 'Mind maps premium bloqueados',
+      lockedSubtitle:
+          'Faça upgrade para abrir o canvas imersivo, criar boards e editar mapas mentais completos.',
+      child: AsyncValueView(
+        value: mindMapsAsync,
+        loadingMessage: 'Preparando boards e canvas...',
+        data: (mindMaps) {
         final trackNameById = {
           for (final item in trackBlueprints) item.track.id: item.track.name,
         };
@@ -268,7 +277,8 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
             );
           },
         );
-      },
+        },
+      ),
     );
 
     return AppCard(
@@ -1800,7 +1810,14 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
       contentJson: MindMapCodec.encode(document),
       updatedAt: DateTime.now().toUtc(),
     );
-    await ref.read(mindMapActionsProvider).save(updatedMap);
+    try {
+      await ref.read(mindMapActionsProvider).save(updatedMap);
+    } on BillingAccessException catch (error) {
+      if (mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
+      return;
+    }
     if (!mounted || successMessage == null) return;
     context.showAppSnackBar(successMessage);
   }
@@ -2045,7 +2062,18 @@ class _MindMapsScreenState extends ConsumerState<MindMapsScreen> {
                       updatedAt: now,
                     );
 
-                    await ref.read(mindMapActionsProvider).save(updated);
+                    try {
+                      await ref.read(mindMapActionsProvider).save(updated);
+                    } on BillingAccessException catch (error) {
+                      if (dialogContext.mounted) {
+                        await showBillingUpgradeModal(
+                          dialogContext,
+                          ref,
+                          decision: error.decision,
+                        );
+                      }
+                      return;
+                    }
                     if (!dialogContext.mounted) return;
 
                     setState(() {

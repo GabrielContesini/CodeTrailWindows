@@ -1,7 +1,9 @@
 import 'package:code_trail_windows/core/router/app_router.dart';
 import 'package:code_trail_windows/core/services/startup_coordinator.dart';
 import 'package:code_trail_windows/domain/entities/app_entities.dart';
+import 'package:code_trail_windows/domain/entities/billing_entities.dart';
 import 'package:code_trail_windows/domain/repositories/auth_repository.dart';
+import 'package:code_trail_windows/domain/repositories/billing_repository.dart';
 import 'package:code_trail_windows/domain/repositories/study_repository.dart';
 import 'package:code_trail_windows/shared/models/app_enums.dart';
 import 'package:code_trail_windows/shared/models/app_view_models.dart';
@@ -11,14 +13,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() {
   group('StartupCoordinator', () {
     late _FakeAuthRepository authRepository;
+    late _FakeBillingRepository billingRepository;
     late _FakeStudyRepository studyRepository;
     late StartupCoordinator coordinator;
 
     setUp(() {
       authRepository = _FakeAuthRepository();
+      billingRepository = _FakeBillingRepository();
       studyRepository = _FakeStudyRepository();
       coordinator = StartupCoordinator(
         authRepository: authRepository,
+        billingRepository: billingRepository,
         studyRepository: studyRepository,
       );
     });
@@ -62,6 +67,7 @@ void main() {
 
         expect(route, AppRoutes.onboarding);
         expect(studyRepository.syncUserIds, ['user-2']);
+        expect(billingRepository.refreshUserIds, ['user-2']);
       },
     );
 
@@ -79,6 +85,7 @@ void main() {
 
         expect(route, AppRoutes.dashboard);
         expect(studyRepository.syncUserIds, ['user-3']);
+        expect(billingRepository.refreshUserIds, ['user-3']);
       },
     );
 
@@ -99,6 +106,7 @@ void main() {
 
         expect(route, AppRoutes.dashboard);
         expect(studyRepository.syncUserIds, ['user-4']);
+        expect(billingRepository.refreshUserIds, ['user-4']);
       },
     );
   });
@@ -256,6 +264,46 @@ class _FakeStudyRepository extends Fake implements StudyRepository {
 
   @override
   Future<void> saveSettings(AppSettingsEntity settings) async {}
+}
+
+class _FakeBillingRepository extends Fake implements BillingRepository {
+  final List<String> refreshUserIds = <String>[];
+
+  @override
+  Future<BillingSnapshot?> loadCachedSnapshot(String userId) async => null;
+
+  @override
+  Future<BillingSnapshot> refreshSnapshot(String userId) async {
+    refreshUserIds.add(userId);
+    return BillingSnapshot.fallbackFree();
+  }
+
+  @override
+  Future<BillingCheckoutSession> createCheckout({
+    required String userId,
+    required BillingPlanCode planCode,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> createPortalSession(String userId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<BillingSnapshot> cancelSubscription(String userId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<BillingSnapshot> syncSubscription(
+    String userId, {
+    String? gatewaySubscriptionId,
+    String? paymentId,
+  }) {
+    throw UnimplementedError();
+  }
 }
 
 ProfileEntity _profile({

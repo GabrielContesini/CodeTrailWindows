@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/utils/date_time_utils.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/models/app_enums.dart';
 import '../../../shared/models/page_tutorial.dart';
@@ -13,6 +14,8 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../../shared/widgets/sync_status_card.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_controller.dart';
+import '../../billing/presentation/widgets/billing_trial_banner.dart';
 import '../../dashboard/application/dashboard_controller.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../reviews/application/reviews_controller.dart';
@@ -32,6 +35,7 @@ class DashboardScreen extends ConsumerWidget {
     final reviewsAsync = ref.watch(reviewsProvider);
     final projectsAsync = ref.watch(projectsProvider);
     final userId = ref.watch(currentUserIdProvider);
+    final billingSnapshot = ref.watch(currentBillingSnapshotProvider);
 
     return PageFrame(
       title: 'Dashboard',
@@ -92,6 +96,16 @@ class DashboardScreen extends ConsumerWidget {
                         _FocusConsole(summary: summary),
                       ],
                     ),
+                  const SizedBox(height: 16),
+                  BillingTrialBanner(
+                    snapshot: billingSnapshot,
+                    onPrimaryAction: () =>
+                        context.go(AppRoutes.settingsBilling),
+                    primaryLabel: billingSnapshot.currentPlanCode ==
+                            BillingPlanCode.free
+                        ? 'Fazer upgrade'
+                        : 'Gerenciar plano',
+                  ),
                   const SizedBox(height: 16),
                   SyncStatusCard(
                     userId: userId,

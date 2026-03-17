@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/service_providers.dart';
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/application/billing_controller.dart';
 import '../../auth/application/auth_controller.dart';
 
 final notesProvider = StreamProvider<List<StudyNoteEntity>>((ref) {
@@ -19,7 +22,23 @@ class NoteActions {
 
   final Ref _ref;
 
-  Future<void> save(StudyNoteEntity note) {
+  Future<void> save(StudyNoteEntity note) async {
+    final notes = await _ref.read(notesProvider.future);
+    final isEditingExisting = notes.any((item) => item.id == note.id);
+    final decision = _ref
+        .read(billingEntitlementServiceProvider)
+        .checkCreationAccess(
+          _ref.read(currentBillingSnapshotProvider),
+          accessFeatureKey: BillingFeatureKey.notesAccess,
+          limitFeatureKey: BillingFeatureKey.notesLimit,
+          usedCount: notes.length,
+          isEditingExisting: isEditingExisting,
+          resourceLabel: 'nota',
+        );
+    if (!decision.allowed) {
+      throw BillingAccessException(decision);
+    }
+
     return _ref.read(studyRepositoryProvider).saveNote(note);
   }
 

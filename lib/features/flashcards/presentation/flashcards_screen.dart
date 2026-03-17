@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../domain/entities/billing_entities.dart';
 import '../../../domain/entities/app_entities.dart';
 import '../../../shared/extensions/context_extensions.dart';
 import '../../../shared/models/app_enums.dart';
@@ -13,6 +14,9 @@ import '../../../shared/widgets/async_value_view.dart';
 import '../../../shared/widgets/empty_state.dart';
 import '../../../shared/widgets/page_frame.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../billing/application/billing_access_exception.dart';
+import '../../billing/presentation/widgets/billing_feature_gate.dart';
+import '../../billing/presentation/widgets/billing_upgrade_modal.dart';
 import '../../projects/application/projects_controller.dart';
 import '../../tracks/application/tracks_controller.dart';
 import '../application/flashcards_controller.dart';
@@ -67,10 +71,15 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
           label: const Text('Novo card'),
         ),
       ],
-      child: AsyncValueView(
-        value: flashcardsAsync,
-        loadingMessage: 'Preparando decks e fila de revisão...',
-        data: (flashcards) {
+      child: BillingFeatureGate(
+        featureKey: BillingFeatureKey.flashcardsAccess,
+        lockedTitle: 'Flashcards premium bloqueados',
+        lockedSubtitle:
+            'Faça upgrade para criar decks ilimitados, revisar com repetição espaçada e liberar a biblioteca completa.',
+        child: AsyncValueView(
+          value: flashcardsAsync,
+          loadingMessage: 'Preparando decks e fila de revisão...',
+          data: (flashcards) {
           final trackNameById = {
             for (final item in trackBlueprints) item.track.id: item.track.name,
           };
@@ -428,7 +437,8 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
               );
             },
           );
-        },
+          },
+        ),
       ),
     );
   }
@@ -437,9 +447,15 @@ class _FlashcardsScreenState extends ConsumerState<FlashcardsScreen> {
     FlashcardEntity card,
     FlashcardReviewGrade grade,
   ) async {
-    final updated = await ref
-        .read(flashcardActionsProvider)
-        .review(card, grade);
+    late final FlashcardEntity updated;
+    try {
+      updated = await ref.read(flashcardActionsProvider).review(card, grade);
+    } on BillingAccessException catch (error) {
+      if (mounted) {
+        await showBillingUpgradeModal(context, ref, decision: error.decision);
+      }
+      return;
+    }
     if (!mounted) return;
 
     setState(() {
@@ -1359,28 +1375,39 @@ Future<void> _showFlashcardDialog(
                     selectedProjectId,
                   );
 
-                  await ref
-                      .read(flashcardActionsProvider)
-                      .save(
-                        FlashcardEntity(
-                          id: card?.id ?? uuid.v4(),
-                          userId: userId,
-                          deckName: deck,
-                          question: question,
-                          answer: answer,
-                          trackId: selectedTrack?.track.id,
-                          moduleId: selectedModule?.id,
-                          projectId: selectedProject?.project.id,
-                          dueAt: card?.dueAt ?? now,
-                          lastReviewedAt: card?.lastReviewedAt,
-                          reviewCount: card?.reviewCount ?? 0,
-                          correctStreak: card?.correctStreak ?? 0,
-                          easeFactor: card?.easeFactor ?? 2.3,
-                          intervalDays: card?.intervalDays ?? 0,
-                          createdAt: card?.createdAt ?? now,
-                          updatedAt: now,
-                        ),
+                  try {
+                    await ref
+                        .read(flashcardActionsProvider)
+                        .save(
+                          FlashcardEntity(
+                            id: card?.id ?? uuid.v4(),
+                            userId: userId,
+                            deckName: deck,
+                            question: question,
+                            answer: answer,
+                            trackId: selectedTrack?.track.id,
+                            moduleId: selectedModule?.id,
+                            projectId: selectedProject?.project.id,
+                            dueAt: card?.dueAt ?? now,
+                            lastReviewedAt: card?.lastReviewedAt,
+                            reviewCount: card?.reviewCount ?? 0,
+                            correctStreak: card?.correctStreak ?? 0,
+                            easeFactor: card?.easeFactor ?? 2.3,
+                            intervalDays: card?.intervalDays ?? 0,
+                            createdAt: card?.createdAt ?? now,
+                            updatedAt: now,
+                          ),
+                        );
+                  } on BillingAccessException catch (error) {
+                    if (dialogContext.mounted) {
+                      showBillingUpgradeModal(
+                        dialogContext,
+                        ref,
+                        decision: error.decision,
                       );
+                    }
+                    return;
+                  }
                   if (!dialogContext.mounted) return;
                   Navigator.of(dialogContext).pop();
                 },
